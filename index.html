@@ -4,16 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的逐章節讀書筆記與內化系統</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://unpkg.com/lucide-react/dist/umd/lucide-react.js"></script>
     <style>
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
     </style>
@@ -23,13 +17,40 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
-        const { 
-            BookOpen, Calendar, Clock, Plus, Trash2, Edit3, CheckCircle2, 
-            RefreshCw, Eye, EyeOff, FileText, Download, Upload, Cloud, 
-            Sparkles, ChevronRight, Layers, ArrowLeftRight, Check, AlertCircle 
-        } = lucideReact;
 
-        // 預設示範資料結構
+        // 輕量化原生 SVG 圖示，確保 0 依賴不報錯
+        const Icon = ({ name, className = "w-4 h-4" }) => {
+            const icons = {
+                book: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z M6 2v20 M4 6h16" />,
+                calendar: <path d="M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />,
+                clock: <path d="M12 6v6l4 2 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />,
+                cloud: <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />,
+                plus: <path d="M12 5v14 M5 12h14" />,
+                trash: <path d="M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />,
+                eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
+                eyeOff: <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24 M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68 M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61 M2 2l20 20" />,
+                layers: <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z M2 12l10 4.5 10-4.5 M2 17l10 4.5 10-4.5" />,
+                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />,
+                upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />,
+                refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16 M16 21h5v-5" />
+            };
+
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {icons[name] || icons.book}
+                </svg>
+            );
+        };
+
         const INITIAL_BOOKS = [
             {
                 id: 'book-1',
@@ -37,22 +58,22 @@
                 author: 'Sönke Ahrens',
                 startDate: '2026-11-01',
                 endDate: '2026-11-10',
-                status: 'reading', // reading, completed
+                status: 'reading',
                 purpose: '建立高效的知識萃取與永久筆記工作流，解決讀完容易忘記的問題。',
                 tags: ['知識管理', '思維模型'],
                 chapters: [
                     {
                         id: 'ch-1',
                         title: 'Ch.1 序言與核心概念',
-                        readDate: '2026-11-01',
+                        readDate: '2026-11-05',
                         durationMinutes: 45,
                         notes: [
                             {
                                 id: 'note-1',
                                 quote: '寫筆記不是為了蒐集資訊，而是為了思考與對話。',
                                 output: '我常把劃線當成收集，但作者點醒我：如果沒有用自己的話重新表述，那只是把書本搬到筆記本裡，大腦根本沒有運作。',
-                                action: '以後劃線後強制停留 2 分鐘，寫下一句自己的白話文解讀。',
-                                timestamp: '2026-11-01 21:30'
+                                action: '劃線後強制停留 2 分鐘，寫下一句自己的白話文解讀。',
+                                timestamp: '2026-11-05 21:30'
                             }
                         ]
                     }
@@ -73,28 +94,24 @@
                 return saved ? JSON.parse(saved) : INITIAL_BOOKS;
             });
 
-            const [activeTab, setActiveTab] = useState('daily'); // 'daily' 或 'books'
+            const [activeTab, setActiveTab] = useState('daily');
             const [selectedBookId, setSelectedBookId] = useState(books[0]?.id || '');
             const [todayDate, setTodayDate] = useState(() => new Date().toISOString().split('T')[0]);
-            const [hideQuotes, setHideQuotes] = useState(false); // 內化檢測模式
+            const [hideQuotes, setHideQuotes] = useState(false);
             
-            // 雲端同步設定 Modal 狀態
             const [showSyncModal, setShowSyncModal] = useState(false);
             const [githubToken, setGithubToken] = useState(() => localStorage.getItem('gh_token') || '');
             const [gistId, setGistId] = useState(() => localStorage.getItem('gh_gist_id') || '');
             const [syncStatus, setSyncStatus] = useState('');
 
-            // 計時碼錶狀態
             const [isTimerRunning, setIsTimerRunning] = useState(false);
             const [secondsElapsed, setSecondsElapsed] = useState(0);
             const timerRef = useRef(null);
 
-            // 自動儲存到 LocalStorage
             useEffect(() => {
                 localStorage.setItem('reading_notes_books', JSON.stringify(books));
             }, [books]);
 
-            // 計時器邏輯
             useEffect(() => {
                 if (isTimerRunning) {
                     timerRef.current = setInterval(() => {
@@ -112,7 +129,6 @@
                 return `${mins}分 ${secs}秒`;
             };
 
-            // 新增書籍
             const handleAddBook = () => {
                 const newBook = {
                     id: 'book-' + Date.now(),
@@ -152,18 +168,16 @@
                 setSelectedBookId(newBook.id);
             };
 
-            // 匯出 JSON 備份
             const handleExportJSON = () => {
                 const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(books, null, 2));
                 const downloadAnchor = document.createElement('a');
                 downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `reading_notes_backup_${new Date().toISOString().split('T')[0]}.json`);
+                downloadAnchor.setAttribute("download", `reading_notes_${new Date().toISOString().split('T')[0]}.json`);
                 document.body.appendChild(downloadAnchor);
                 downloadAnchor.click();
                 downloadAnchor.remove();
             };
 
-            // 匯入 JSON 備份
             const handleImportJSON = (e) => {
                 const fileReader = new FileReader();
                 if (e.target.files[0]) {
@@ -180,7 +194,6 @@
                 }
             };
 
-            // GitHub Gist 雲端同步功能
             const handleSyncToGist = async () => {
                 if (!githubToken) {
                     alert('請先輸入 GitHub Personal Access Token (PAT)');
@@ -194,7 +207,6 @@
                     let currentGistId = gistId;
 
                     if (!currentGistId) {
-                        // 建立新的 Secret Gist
                         const res = await fetch('https://api.github.com/gists', {
                             method: 'POST',
                             headers: {
@@ -202,11 +214,9 @@
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                description: 'My Reading Notes Cloud Database',
+                                description: 'Reading Notes Cloud DB',
                                 public: false,
-                                files: {
-                                    'reading_notes_db.json': { content }
-                                }
+                                files: { 'reading_notes_db.json': { content } }
                             })
                         });
                         const data = await res.json();
@@ -218,7 +228,6 @@
                             throw new Error(data.message || '建立 Gist 失敗');
                         }
                     } else {
-                        // 更新現有 Gist
                         const res = await fetch(`https://api.github.com/gists/${currentGistId}`, {
                             method: 'PATCH',
                             headers: {
@@ -226,9 +235,7 @@
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                files: {
-                                    'reading_notes_db.json': { content }
-                                }
+                                files: { 'reading_notes_db.json': { content } }
                             })
                         });
                         if (!res.ok) throw new Error('更新 Gist 失敗');
@@ -267,7 +274,6 @@
                 }
             };
 
-            // 篩選今天有閱讀紀錄（readDate === todayDate）的書籍與章節
             const todaysReadings = books.map(book => {
                 const matchedChapters = book.chapters.filter(ch => ch.readDate === todayDate);
                 return matchedChapters.length > 0 ? { ...book, activeChapters: matchedChapters } : null;
@@ -277,39 +283,36 @@
 
             return (
                 <div className="min-h-screen pb-16">
-                    {/* 頂部導覽列 */}
                     <header className="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
                         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
                             <div className="flex items-center gap-3">
                                 <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                                    <BookOpen className="w-6 h-6" />
+                                    <Icon name="book" className="w-6 h-6" />
                                 </div>
                                 <div>
                                     <h1 className="text-lg font-bold">逐章節讀書筆記與內化系統</h1>
-                                    <p className="text-xs text-slate-400">輸入原文金句 ➔ 我的話語轉化 ➔ 跨裝置雲端同步</p>
+                                    <p className="text-xs text-slate-400">感觸原句 ➔ 我的話語轉化 ➔ 跨裝置同步</p>
                                 </div>
                             </div>
 
-                            {/* 視角切換 Tabs */}
                             <div className="flex items-center bg-slate-800 p-1 rounded-xl">
                                 <button 
                                     onClick={() => setActiveTab('daily')}
                                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 ${activeTab === 'daily' ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
                                 >
-                                    <Calendar className="w-4 h-4" /> 今日跨書工作台
+                                    <Icon name="calendar" /> 今日跨書工作台
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('books')}
                                     className={`px-4 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 ${activeTab === 'books' ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
                                 >
-                                    <Layers className="w-4 h-4" /> 單書完整脈絡
+                                    <Icon name="layers" /> 單書完整脈絡
                                 </button>
                             </div>
 
-                            {/* 右上角工具列：計時器與雲端同步按鈕 */}
                             <div className="flex items-center gap-2">
                                 <div className="hidden lg:flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg text-xs">
-                                    <Clock className="w-4 h-4 text-indigo-400" />
+                                    <Icon name="clock" className="w-4 h-4 text-indigo-400" />
                                     <span>碼錶：{formatTime(secondsElapsed)}</span>
                                     <button 
                                         onClick={() => setIsTimerRunning(!isTimerRunning)}
@@ -323,29 +326,27 @@
                                     onClick={() => setShowSyncModal(true)}
                                     className="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition shadow"
                                 >
-                                    <Cloud className="w-4 h-4" /> 雲端同步設定
+                                    <Icon name="cloud" /> 雲端同步設定
                                 </button>
                             </div>
                         </div>
                     </header>
 
-                    {/* 主內容區 */}
                     <main className="max-w-6xl mx-auto px-4 mt-6">
                         {activeTab === 'daily' ? (
-                            /* =================== 視角一：今日跨書工作台 =================== */
                             <div className="space-y-6">
                                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                                            <Calendar className="w-6 h-6" />
+                                            <Icon name="calendar" className="w-6 h-6" />
                                         </div>
                                         <div>
                                             <h2 className="text-xl font-bold text-slate-800">今日閱讀日誌與跨書對讀</h2>
-                                            <p className="text-sm text-slate-500">一天看多本書？在這裡同時並排推進各書當日章節。</p>
+                                            <p className="text-sm text-slate-500">一天看多本書？在這裡同時推進各書當日章節。</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <label className="text-sm font-medium text-slate-600">選擇工作日期：</label>
+                                        <label className="text-sm font-medium text-slate-600">工作日期：</label>
                                         <input 
                                             type="date" 
                                             value={todayDate}
@@ -355,13 +356,12 @@
                                     </div>
                                 </div>
 
-                                {/* 今日跨書並排列表 */}
                                 <div className="space-y-6">
                                     {todaysReadings.length === 0 ? (
                                         <div className="bg-white p-12 rounded-2xl text-center border border-dashed border-slate-300">
-                                            <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                                            <h3 className="text-lg font-bold text-slate-700">今日尚無綁定閱讀此日期的章節</h3>
-                                            <p className="text-sm text-slate-500 mt-1 mb-4">你可以到右上方切換至「單書完整脈絡」挑選書籍，並將章節的「閱讀日期」設定為今天（{todayDate}）。</p>
+                                            <Icon name="book" className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                                            <h3 className="text-lg font-bold text-slate-700">今日尚無綁定此日期的章節</h3>
+                                            <p className="text-sm text-slate-500 mt-1 mb-4">切換至「單書完整脈絡」挑選書籍，並將章節的「閱讀日期」設定為今天（{todayDate}）。</p>
                                             <button 
                                                 onClick={() => setActiveTab('books')}
                                                 className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow hover:bg-indigo-500 transition"
@@ -398,11 +398,9 @@
                                                                 </span>
                                                             </div>
 
-                                                            {/* 卡片對照清單 */}
                                                             <div className="space-y-4">
                                                                 {ch.notes.map((note, nIdx) => (
                                                                     <div key={note.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-                                                                        {/* 左欄：原句 */}
                                                                         <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200/60 flex flex-col justify-between">
                                                                             <div>
                                                                                 <div className="text-xs font-bold text-amber-800 mb-1 flex items-center justify-between">
@@ -428,7 +426,6 @@
                                                                             </div>
                                                                         </div>
 
-                                                                        {/* 右欄：我的輸出 */}
                                                                         <div className="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 flex flex-col justify-between space-y-3">
                                                                             <div>
                                                                                 <div className="text-xs font-bold text-indigo-900 mb-1">💡 我的話語輸出（內化轉譯）</div>
@@ -481,20 +478,18 @@
                                 </div>
                             </div>
                         ) : (
-                            /* =================== 視角二：單書完整脈絡檢視 =================== */
                             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                                {/* 左側：書櫃列表側邊欄 */}
                                 <div className="lg:col-span-1 space-y-4">
                                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                                         <div className="flex justify-between items-center mb-4">
                                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                                <BookOpen className="w-4 h-4 text-indigo-600" /> 我的書櫃
+                                                <Icon name="book" className="w-4 h-4 text-indigo-600" /> 我的書櫃
                                             </h3>
                                             <button 
                                                 onClick={handleAddBook}
                                                 className="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition"
                                             >
-                                                <Plus className="w-4 h-4" /> 新增書籍
+                                                <Icon name="plus" /> 新增書籍
                                             </button>
                                         </div>
                                         <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
@@ -517,11 +512,9 @@
                                     </div>
                                 </div>
 
-                                {/* 右側：單書完整脈絡與逐章節編輯區 */}
                                 <div className="lg:col-span-3 space-y-6">
                                     {currentBook && (
                                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                                            {/* 書籍頂部標題與屬性 */}
                                             <div className="border-b border-slate-100 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                                                 <div className="space-y-2 flex-1">
                                                     <div className="flex items-center gap-3">
@@ -566,7 +559,7 @@
                                                         onClick={() => setHideQuotes(!hideQuotes)}
                                                         className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${hideQuotes ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
                                                     >
-                                                        {hideQuotes ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                        <Icon name={hideQuotes ? "eyeOff" : "eye"} />
                                                         {hideQuotes ? '內化檢測中（隱藏原句）' : '檢測模式'}
                                                     </button>
                                                     <button 
@@ -579,17 +572,14 @@
                                                         className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
                                                         title="刪除此書"
                                                     >
-                                                        <Trash2 className="w-4 h-4" />
+                                                        <Icon name="trash" />
                                                     </button>
                                                 </div>
                                             </div>
 
-                                            {/* 閱讀目的與標籤 */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5">
-                                                    <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                                                        🎯 閱讀目的（核心提問）
-                                                    </label>
+                                                    <label className="text-xs font-bold text-slate-600">🎯 閱讀目的（核心提問）</label>
                                                     <textarea 
                                                         value={currentBook.purpose}
                                                         onChange={(e) => {
@@ -627,12 +617,9 @@
                                                 </div>
                                             </div>
 
-                                            {/* 逐章節流水線區塊 */}
                                             <div className="space-y-6 pt-4 border-t border-slate-100">
                                                 <div className="flex justify-between items-center">
-                                                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                                                        📖 逐章節筆記流水線
-                                                    </h3>
+                                                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">📖 逐章節筆記流水線</h3>
                                                     <button 
                                                         onClick={() => {
                                                             const newCh = {
@@ -654,14 +641,13 @@
                                                         }}
                                                         className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1 transition shadow"
                                                     >
-                                                        <Plus className="w-4 h-4" /> 新增章節
+                                                        <Icon name="plus" /> 新增章節
                                                     </button>
                                                 </div>
 
                                                 <div className="space-y-6">
                                                     {currentBook.chapters.map((ch, cIdx) => (
                                                         <div key={ch.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                                                            {/* 章節標題與設定 */}
                                                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 border-b border-slate-200">
                                                                 <div className="flex items-center gap-2 w-full md:w-auto flex-1">
                                                                     <span className="bg-indigo-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
@@ -719,18 +705,15 @@
                                                                             } : b));
                                                                         }}
                                                                         className="text-rose-500 hover:text-rose-700 p-1"
-                                                                        title="刪除此章節"
                                                                     >
-                                                                        <Trash2 className="w-4 h-4" />
+                                                                        <Icon name="trash" />
                                                                     </button>
                                                                 </div>
                                                             </div>
 
-                                                            {/* 該章節底下的卡片列表 */}
                                                             <div className="space-y-4">
                                                                 {ch.notes.map((note, nIdx) => (
-                                                                    <div key={note.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200 relative group">
-                                                                        {/* 左欄：原句 */}
+                                                                    <div key={note.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200">
                                                                         <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200/60 flex flex-col justify-between">
                                                                             <div>
                                                                                 <div className="text-xs font-bold text-amber-800 mb-1 flex items-center justify-between">
@@ -756,7 +739,6 @@
                                                                             </div>
                                                                         </div>
 
-                                                                        {/* 右欄：我的輸出 */}
                                                                         <div className="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 flex flex-col justify-between space-y-3">
                                                                             <div>
                                                                                 <div className="text-xs font-bold text-indigo-900 mb-1">💡 我的話語輸出（內化轉譯）</div>
@@ -808,9 +790,8 @@
                                                                                         } : b));
                                                                                     }}
                                                                                     className="text-slate-400 hover:text-rose-500 p-1 transition"
-                                                                                    title="刪除此筆記卡片"
                                                                                 >
-                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                    <Icon name="trash" className="w-3.5 h-3.5" />
                                                                                 </button>
                                                                             </div>
                                                                         </div>
@@ -833,7 +814,7 @@
                                                                     }}
                                                                     className="w-full py-2 bg-white border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 rounded-xl text-xs font-medium text-slate-500 transition flex items-center justify-center gap-1"
                                                                 >
-                                                                    <Plus className="w-3.5 h-3.5" /> 在本章新增一則金句與輸出
+                                                                    <Icon name="plus" className="w-3.5 h-3.5" /> 在本章新增一則金句與輸出
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -841,12 +822,9 @@
                                                 </div>
                                             </div>
 
-                                            {/* 全書總結與三次重讀打卡 */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
                                                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                                                    <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                                        ✍️ 全書核心心得分享 (Synthesis)
-                                                    </h4>
+                                                    <h4 className="font-bold text-slate-800 text-sm">✍️ 全書核心心得分享 (Synthesis)</h4>
                                                     <textarea 
                                                         value={currentBook.synthesis}
                                                         onChange={(e) => {
@@ -860,9 +838,7 @@
                                                 </div>
 
                                                 <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                                                    <h4 className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                                        🔄 間隔重讀打卡（對抗遺忘曲線）
-                                                    </h4>
+                                                    <h4 className="font-bold text-slate-800 text-sm">🔄 間隔重讀打卡（對抗遺忘曲線）</h4>
                                                     <div className="space-y-2">
                                                         {currentBook.reviews.map((rev, rIdx) => (
                                                             <div key={rIdx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
@@ -906,13 +882,12 @@
                         )}
                     </main>
 
-                    {/* 雲端同步設定 Modal */}
                     {showSyncModal && (
                         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-xl border border-slate-200">
                                 <div className="flex justify-between items-center">
                                     <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                        <Cloud className="w-5 h-5 text-indigo-600" /> GitHub Gist 跨裝置雲端同步
+                                        <Icon name="cloud" className="w-5 h-5 text-indigo-600" /> GitHub Gist 跨裝置雲端同步
                                     </h3>
                                     <button onClick={() => setShowSyncModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
                                 </div>
@@ -931,11 +906,11 @@
                                             placeholder="請貼上 ghp_... 開頭的 Token"
                                             className="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
                                         />
-                                        <p className="text-[11px] text-slate-400">去 GitHub 設定頁面 Settings ➔ Developer settings ➔ Personal access tokens (classic) 產出，勾選 gist 權限即可。</p>
+                                        <p className="text-[11px] text-slate-400">至 GitHub Settings ➔ Developer settings ➔ Personal access tokens (classic) 產出，勾選 gist 權限即可。</p>
                                     </div>
 
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-700">2. Gist ID（若第一次同步可留空自動建立）</label>
+                                        <label className="text-xs font-bold text-slate-700">2. Gist ID（首次同步請留空，系統會自動建立）</label>
                                         <input 
                                             type="text" 
                                             value={gistId}
@@ -956,13 +931,13 @@
                                             onClick={handleSyncToGist}
                                             className="bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm font-bold shadow transition flex items-center justify-center gap-1.5"
                                         >
-                                            <Upload className="w-4 h-4" /> 同步至雲端
+                                            <Icon name="upload" /> 同步至雲端
                                         </button>
                                         <button 
                                             onClick={handleFetchFromGist}
                                             className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl text-sm font-bold shadow transition flex items-center justify-center gap-1.5"
                                         >
-                                            <RefreshCw className="w-4 h-4" /> 從雲端載入
+                                            <Icon name="refresh" /> 從雲端載入
                                         </button>
                                     </div>
                                 </div>
@@ -973,10 +948,10 @@
                                             onClick={handleExportJSON}
                                             className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium"
                                         >
-                                            <Download className="w-3.5 h-3.5" /> 備份下載 JSON
+                                            <Icon name="download" className="w-3.5 h-3.5" /> 備份下載 JSON
                                         </button>
                                         <label className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium cursor-pointer">
-                                            <Upload className="w-3.5 h-3.5" /> 匯入 JSON
+                                            <Icon name="upload" className="w-3.5 h-3.5" /> 匯入 JSON
                                             <input type="file" onChange={handleImportJSON} className="hidden" accept=".json" />
                                         </label>
                                     </div>
@@ -994,7 +969,9 @@
             );
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        // 使用 React 18 標準掛載語法
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
