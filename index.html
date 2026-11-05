@@ -1,977 +1,2507 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的逐章節讀書筆記與內化系統</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>格格讀書行動營・跨書平行內化系統</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+      .blur-xs {
+        filter: blur(4px);
+      }
+      .hover\:blur-none:hover {
+        filter: blur(0px);
+      }
+      .focus\:blur-none:focus {
+        filter: blur(0px);
+      }
+      .backdrop-blur-xs {
+        backdrop-filter: blur(4px);
+      }
     </style>
-</head>
-<body class="bg-slate-50 text-slate-900">
+    <!-- ES Module Import Map: 直接從 CDN 載入 React 與 Lucide 圖示庫，免安裝 Node.js 即可執行 -->
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
+          "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@18.3.1"
+        }
+      }
+    </script>
+    <!-- Babel Standalone: 在瀏覽器端即時編譯 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body class="bg-[#F6F4EE]">
     <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useMemo } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import {
+        BookOpen,
+        Plus,
+        Trash2,
+        CheckCircle2,
+        Circle,
+        Eye,
+        EyeOff,
+        Download,
+        Copy,
+        Search,
+        ChevronDown,
+        ChevronRight,
+        Sparkles,
+        Target,
+        Quote,
+        MessageSquare,
+        Zap,
+        Calendar,
+        Award,
+        BookMarked,
+        Tag,
+        X,
+        Printer,
+        RotateCcw,
+        Layers,
+        ArrowRight,
+        Clock,
+        Timer,
+        Play,
+        Pause,
+        CalendarDays,
+        Flame,
+        Columns,
+        Rows,
+        GitCompare,
+        ExternalLink,
+        Check
+      } from 'lucide-react';
 
-        // 輕量化原生 SVG 圖示，確保 0 依賴不報錯
-        const Icon = ({ name, className = "w-4 h-4" }) => {
-            const icons = {
-                book: <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z M6 2v20 M4 6h16" />,
-                calendar: <path d="M8 2v4 M16 2v4 M3 10h18 M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />,
-                clock: <path d="M12 6v6l4 2 M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />,
-                cloud: <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />,
-                plus: <path d="M12 5v14 M5 12h14" />,
-                trash: <path d="M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />,
-                eye: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />,
-                eyeOff: <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24 M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68 M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61 M2 2l20 20" />,
-                layers: <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.9a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z M2 12l10 4.5 10-4.5 M2 17l10 4.5 10-4.5" />,
-                download: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3" />,
-                upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5 M12 3v12" />,
-                refresh: <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16 M16 21h5v-5" />
-            };
+      // 預設顏色主題標籤（讓不同書籍在「今日跨書工作台」一眼就能區分）
+      const BOOK_THEMES = {
+        emerald: {
+          badge: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+          header: 'bg-emerald-950 text-stone-100',
+          accent: 'border-emerald-700/30 bg-emerald-50/30',
+          dot: 'bg-emerald-600'
+        },
+        indigo: {
+          badge: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+          header: 'bg-indigo-950 text-stone-100',
+          accent: 'border-indigo-700/30 bg-indigo-50/30',
+          dot: 'bg-indigo-600'
+        },
+        amber: {
+          badge: 'bg-amber-100 text-amber-950 border-amber-300',
+          header: 'bg-amber-950 text-stone-100',
+          accent: 'border-amber-700/30 bg-amber-50/30',
+          dot: 'bg-amber-600'
+        },
+        rose: {
+          badge: 'bg-rose-100 text-rose-900 border-rose-300',
+          header: 'bg-rose-950 text-stone-100',
+          accent: 'border-rose-700/30 bg-rose-50/30',
+          dot: 'bg-rose-600'
+        }
+      };
 
-            return (
-                <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className={className}
-                >
-                    {icons[name] || icons.book}
-                </svg>
-            );
+      // 預設範例資料：展示「一天讀 2 本書、每本推進 1 個章節」的真實場景 (2026-11-03 與 2026-11-04)
+      const SAMPLE_BOOKS = [
+        {
+          id: 'book-1',
+          serialNo: '001',
+          theme: 'emerald',
+          title: '卡片盒筆記：最高效思考筆記術',
+          author: '申克・艾倫斯 (Sönke Ahrens)',
+          status: 'reading',
+          startDate: '2026-11-01',
+          endDate: '',
+          tags: ['知識管理', '寫作輸出', '思考方法'],
+          purpose: '平時讀很多書也畫了很多重點，但要寫企劃或文章時卻常常找不出來用。希望建立一套「邊讀邊用自己的話轉化、並能跨書串聯靈感」的筆記系統。',
+          chapters: [
+            {
+              id: 'ch-101',
+              title: '第二章：寫作所需的基礎（文獻筆記與永久筆記）',
+              readDate: '2026-11-03',
+              timeSlot: '21:00 - 21:35',
+              pageRange: 'p.42 ~ p.68',
+              durationMinutes: 35,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: 'note-1001',
+                  page: 'p.51',
+                  recordedAt: '2026-11-03 21:20',
+                  quote: '做文獻筆記時要非常簡短，挑選內容要極度挑剔，並且一定要用自己的話來記錄，千萬不要只是抄寫引文。',
+                  paraphrase: '複製貼上原文只是一種「收集的錯覺」，大腦根本沒有啟動理解機制。當我強迫自己把書本合起來、用自己的話重寫一次時，才真正篩選出我懂的部分與不懂的盲點。',
+                  actionText: '今後每讀完一個小節，限制自己只能挑 1~2 句最有感觸的話，且右欄「我的話語輸出」字數要比左欄原文更多。',
+                  actionDone: true,
+                  practiceLog: '執行兩天下來，雖然讀書速度變慢一點點，但隔天回想時幾乎不用看原文就能講出核心邏輯！'
+                }
+              ]
+            },
+            {
+              id: 'ch-102',
+              title: '第三章：順利寫作必備的六個步驟',
+              readDate: '2026-11-04',
+              timeSlot: '08:10 - 08:45',
+              pageRange: 'p.69 ~ p.95',
+              durationMinutes: 35,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: 'note-1002',
+                  page: 'p.78',
+                  recordedAt: '2026-11-04 08:30',
+                  quote: '問題不在於資訊太多，而在於我們看待資訊的方式。永久筆記的關鍵不是問「這屬於哪個主題分類？」，而是問「這個想法會在哪個脈絡下再次被我用到？」',
+                  paraphrase: '傳統做筆記習慣按「書名」或「學科」建資料夾，結果筆記進去就再也不見天日。真正的內化是去想：這個觀點可以解決我手頭上的哪個專案問題？或是跟今天讀的另一本書有什麼關聯？用「未來使用情境」來下標籤。',
+                  actionText: '在每天讀完兩本書的章節後，花 3 分鐘在「今日跨書思維碰撞」欄位寫下這兩章可以如何應用在近期的企劃提案中。',
+                  actionDone: true,
+                  practiceLog: '今天把《卡片盒筆記》的脈絡連結跟《創意黏力學》的具體化技巧結合，成功想出下週報告的開場切角！'
+                }
+              ]
+            }
+          ],
+          synthesis: '透過逐章節把「感觸原句」轉譯成「自己的話」，我深刻體會到筆記不是為了存檔，而是為了協助思考。特別是每天同時讀兩本書時，不同領域的章節放在一起看，反而更容易撞擊出意想不到的連結。',
+          rereads: [
+            {
+              stage: 1,
+              label: '重讀筆記（第 1 次）',
+              hint: '建議：完讀後 7 天內',
+              completed: false,
+              date: '',
+              reflection: ''
+            },
+            {
+              stage: 2,
+              label: '重讀筆記（第 2 次）',
+              hint: '建議：完讀後 1 個月',
+              completed: false,
+              date: '',
+              reflection: ''
+            },
+            {
+              stage: 3,
+              label: '重讀筆記（第 3 次）',
+              hint: '建議：完讀後 3 個月',
+              completed: false,
+              date: '',
+              reflection: ''
+            }
+          ]
+        },
+        {
+          id: 'book-2',
+          serialNo: '002',
+          theme: 'indigo',
+          title: '創意黏力學：為什麼有些點子能成功，有些卻失敗？',
+          author: '奇普・希思、丹・希思 (Chip & Dan Heath)',
+          status: 'reading',
+          startDate: '2026-11-02',
+          endDate: '',
+          tags: ['傳播企劃', '故事力', '行銷策略'],
+          purpose: '在做簡報提案與文案溝通時，常覺得自己的論點很完整，但聽眾卻記不住。想學習如何把抽象的策略轉化成讓人過目不忘的具體訊息。',
+          chapters: [
+            {
+              id: 'ch-201',
+              title: '第一章：簡潔（Simple）——找出核心訊息',
+              readDate: '2026-11-03',
+              timeSlot: '22:00 - 22:30',
+              pageRange: 'p.25 ~ p.62',
+              durationMinutes: 30,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: 'note-2001',
+                  page: 'p.40',
+                  recordedAt: '2026-11-03 22:20',
+                  quote: '如果你同時說了三件事，就等於什麼都沒說。指揮官意圖（Commander’s Intent）就是用一句話定義「就算計畫全部被打亂，最重要的唯一目標是什麼」。',
+                  paraphrase: '我們常因為怕漏掉細節，在企劃書裡塞滿五六個核心亮點，結果客戶聽完一頭霧水。真正厲害的溝通是「殘酷地刪減」，逼自己找出那唯一一個就算其他都被忘記、也必須被記住的核心主張。',
+                  actionText: '下次撰寫提案簡報前，先在便利貼寫下「整份簡報唯一的一句話核心」，超過一句話就不准打開投影片軟體。',
+                  actionDone: false,
+                  practiceLog: ''
+                }
+              ]
+            },
+            {
+              id: 'ch-202',
+              title: '第二章：意外（Unexpected）——打破聽眾的預測機器',
+              readDate: '2026-11-04',
+              timeSlot: '21:30 - 22:00',
+              pageRange: 'p.63 ~ p.98',
+              durationMinutes: 30,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: 'note-2002',
+                  page: 'p.82',
+                  recordedAt: '2026-11-04 21:50',
+                  quote: '好奇心會在我們感覺自己的知識出現「缺口」時產生。要讓聽眾在乎你的答案，你必須先讓他們意識到自己有不知道的事。',
+                  paraphrase: '平鋪直敘地給出結論，大腦會直接略過；但如果在給結論前，先拋出一個違反直覺的現象或提問，讓對方產生「咦？為什麼會這樣？」的認知缺口，接下來的觀點就會像磁鐵一樣黏在對方腦海裡。',
+                  actionText: '把原本簡報開頭的「市場數據總覽」，改成一個「多數人誤以為 A 有效，但數據卻顯示相反」的懸念提問。',
+                  actionDone: true,
+                  practiceLog: '今天討論時先拋出反直覺問題，團隊成員明顯抬起頭來討論，互動感比以前好非常多！'
+                }
+              ]
+            }
+          ],
+          synthesis: '這本書的 SUCCESs 六原則非常實用，每讀一章都能直接對應到日常的溝通與企劃工作。',
+          rereads: [
+            { stage: 1, label: '重讀筆記（第 1 次）', hint: '建議：完讀後 7 天內', completed: false, date: '', reflection: '' },
+            { stage: 2, label: '重讀筆記（第 2 次）', hint: '建議：完讀後 1 個月', completed: false, date: '', reflection: '' },
+            { stage: 3, label: '重讀筆記（第 3 次）', hint: '建議：完讀後 3 個月', completed: false, date: '', reflection: '' }
+          ]
+        },
+        {
+          id: 'book-3',
+          serialNo: '003',
+          theme: 'amber',
+          title: '原子習慣：細微改變帶來巨大成就的實證法則',
+          author: '詹姆斯‧克利爾 (James Clear)',
+          status: 'completed',
+          startDate: '2026-10-20',
+          endDate: '2026-10-30',
+          tags: ['習慣養成', '行為設計', '時間管理'],
+          purpose: '建立每天穩定閱讀兩本書各一章的系統化習慣，不靠意志力硬撐。',
+          chapters: [
+            {
+              id: 'ch-301',
+              title: '第一章：原子習慣的驚人力量',
+              readDate: '2026-10-28',
+              timeSlot: '21:30 - 22:15',
+              pageRange: 'p.15 ~ p.45',
+              durationMinutes: 45,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: 'note-3001',
+                  page: 'p.34',
+                  recordedAt: '2026-10-28 22:00',
+                  quote: '你不會因為設定目標而成功，你會因為落實系統而成功。贏家跟輸家擁有相同的目標。',
+                  paraphrase: '與其設定「今年要讀 30 本書」的遙遠目標，不如建立「每天早晚各讀一本書的一個章節，並用自己的話寫下一段輸出」的日常系統。當系統穩定運轉，書自然就讀完了。',
+                  actionText: '早上通勤或晨間讀「方法論/思考類」一章，睡前讀「策略/故事類」一章，形成雙書推進系統。',
+                  actionDone: true,
+                  practiceLog: '已經連續執行一週！一天讀兩本書各一章反而不會膩，還能在不同書之間找到連結。'
+                }
+              ]
+            }
+          ],
+          synthesis: '透過「每天兩本書、每本一章」的微習慣設計，大幅降低了閱讀大部頭書籍的心理阻力。',
+          rereads: [
+            { stage: 1, label: '重讀筆記（第 1 次）', hint: '建議：完讀後 7 天內', completed: true, date: '2026-11-02', reflection: '只看自己的話語輸出就能瞬間回想起「系統大於目標」，且已落實在每日雙書閱讀中！' },
+            { stage: 2, label: '重讀筆記（第 2 次）', hint: '建議：完讀後 1 個月', completed: false, date: '', reflection: '' },
+            { stage: 3, label: '重讀筆記（第 3 次）', hint: '建議：完讀後 3 個月', completed: false, date: '', reflection: '' }
+          ]
+        }
+      ];
+
+      // 預設每日跨書思維碰撞筆記 (依日期儲存)
+      const SAMPLE_DAILY_SPARKS = {
+        '2026-11-04':
+          '💡 今日雙書碰撞（《卡片盒筆記》Ch.3 ✕ 《創意黏力學》Ch.2）：\n早上讀《卡片盒筆記》提到「做筆記不要問它屬於哪個分類，要問它在什麼情境下能解決什麼問題」；晚上讀《創意黏力學》剛好講到「要吸引人注意，必須先製造知識缺口（提問）」。\n👉 結合應用：我以後在寫每章的「我的話語輸出」時，都可以試著先寫一個「這段觀點能解決什麼反直覺的問題？」，這樣我的筆記未來直接就能當作簡報開場的破題素材！',
+        '2026-11-03':
+          '💡 今日雙書碰撞（《卡片盒筆記》Ch.2 ✕ 《創意黏力學》Ch.1）：\n兩本書今天不約而同都在講「少即是多」！《卡片盒筆記》強調摘錄要極度挑剔並用自己的話寫；《創意黏力學》則強調「同時說三件事等於沒說」。這提醒我每讀完一章，不求把所有重點都抄下來，而是精煉出最打中我的 1~2 個核心觀點並深度轉譯。'
+      };
+
+      const STORAGE_KEY_BOOKS = 'reading_notes_multibook_v3_books';
+      const STORAGE_KEY_SPARKS = 'reading_notes_multibook_v3_sparks';
+
+      // 日期與時間工具函式
+      const getTodayDateStr = () => '2026-11-04'; // 預設對應當前日期 2026-11-04
+      const getNowTimeStr = () => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      };
+
+      const formatMinutes = (totalMins) => {
+        const mins = Number(totalMins) || 0;
+        if (mins <= 0) return '0 分鐘';
+        const h = Math.floor(mins / 60);
+        const m = mins % 60;
+        if (h === 0) return `${m} 分鐘`;
+        if (m === 0) return `${h} 小時`;
+        return `${h} 小時 ${m} 分`;
+      };
+
+      function App() {
+        // 1. 書籍與章節資料庫狀態
+        const [books, setBooks] = useState(() => {
+          try {
+            const saved = localStorage.getItem(STORAGE_KEY_BOOKS);
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+          } catch (e) {
+            console.error('Failed to load books:', e);
+          }
+          return SAMPLE_BOOKS;
+        });
+
+        // 2. 每日跨書思維碰撞筆記狀態 (依 YYYY-MM-DD 索引)
+        const [dailySparks, setDailySparks] = useState(() => {
+          try {
+            const saved = localStorage.getItem(STORAGE_KEY_SPARKS);
+            if (saved) return JSON.parse(saved);
+          } catch (e) {
+            console.error('Failed to load daily sparks:', e);
+          }
+          return SAMPLE_DAILY_SPARKS;
+        });
+
+        // 3. 核心檢視模式切換：'daily' (今日跨書工作台 - 解決一天讀 2+ 本書) | 'book' (單書完整脈絡檢視)
+        const [viewMode, setViewMode] = useState('daily');
+        const [selectedDate, setSelectedDate] = useState('2026-11-04');
+        const [dailyLayout, setDailyLayout] = useState('grid'); // 'grid' (雙欄並排對讀) | 'stack' (上下流式展開)
+
+        // 單書檢視下的當前選中書籍與章節篩選
+        const [activeBookId, setActiveBookId] = useState(() => books[0]?.id || 'book-1');
+        const [selectedChapterId, setSelectedChapterId] = useState('all');
+
+        // 通用 UI 狀態
+        const [focusMode, setFocusMode] = useState('split'); // 'split' (對照模式) | 'outputOnly' (內化檢測：只看我的輸出)
+        const [searchQuery, setSearchQuery] = useState('');
+        const [newTagInput, setNewTagInput] = useState('');
+        const [toastMessage, setToastMessage] = useState(null);
+        const [showMarkdownModal, setShowMarkdownModal] = useState(false);
+        const [exportType, setExportType] = useState('daily'); // 'daily' | 'book'
+        const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+        // 「+ 新增今日閱讀章節」快速表單狀態
+        const [showAddTodayChapter, setShowAddTodayChapter] = useState(false);
+        const [quickChapterForm, setQuickChapterForm] = useState({
+          bookId: books[0]?.id || 'book-1',
+          isNewBook: false,
+          newBookTitle: '',
+          newBookAuthor: '',
+          chapterTitle: '',
+          durationMinutes: 30,
+          timeSlot: '21:00 - 21:30',
+          pageRange: 'p.'
+        });
+
+        // 頂部智慧計時碼錶（可直接綁定正在讀哪一本書的哪一個章節）
+        const [timerRunning, setTimerRunning] = useState(false);
+        const [timerSeconds, setTimerSeconds] = useState(0);
+        const [timerTarget, setTimerTarget] = useState({
+          bookId: 'book-1',
+          chapterId: 'ch-102'
+        });
+
+        // 自動儲存至 localStorage
+        useEffect(() => {
+          try {
+            localStorage.setItem(STORAGE_KEY_BOOKS, JSON.stringify(books));
+          } catch (e) {
+            console.error('Failed to save books:', e);
+          }
+        }, [books]);
+
+        useEffect(() => {
+          try {
+            localStorage.setItem(STORAGE_KEY_SPARKS, JSON.stringify(dailySparks));
+          } catch (e) {
+            console.error('Failed to save sparks:', e);
+          }
+        }, [dailySparks]);
+
+        // 計時器每秒推進
+        useEffect(() => {
+          if (!timerRunning) return;
+          const interval = setInterval(() => {
+            setTimerSeconds((prev) => prev + 1);
+          }, 1000);
+          return () => clearInterval(interval);
+        }, [timerRunning]);
+
+        const showToast = (msg) => {
+          setToastMessage(msg);
+          setTimeout(() => {
+            setToastMessage((prev) => (prev === msg ? null : prev));
+          }, 3200);
         };
 
-        const INITIAL_BOOKS = [
-            {
-                id: 'book-1',
-                title: '卡片盒筆記',
-                author: 'Sönke Ahrens',
-                startDate: '2026-11-01',
-                endDate: '2026-11-10',
-                status: 'reading',
-                purpose: '建立高效的知識萃取與永久筆記工作流，解決讀完容易忘記的問題。',
-                tags: ['知識管理', '思維模型'],
-                chapters: [
-                    {
-                        id: 'ch-1',
-                        title: 'Ch.1 序言與核心概念',
-                        readDate: '2026-11-05',
-                        durationMinutes: 45,
-                        notes: [
-                            {
-                                id: 'note-1',
-                                quote: '寫筆記不是為了蒐集資訊，而是為了思考與對話。',
-                                output: '我常把劃線當成收集，但作者點醒我：如果沒有用自己的話重新表述，那只是把書本搬到筆記本裡，大腦根本沒有運作。',
-                                action: '劃線後強制停留 2 分鐘，寫下一句自己的白話文解讀。',
-                                timestamp: '2026-11-05 21:30'
-                            }
-                        ]
-                    }
-                ],
-                synthesis: '',
-                actions: [],
-                reviews: [
-                    { times: 1, date: '', done: false },
-                    { times: 2, date: '', done: false },
-                    { times: 3, date: '', done: false }
-                ]
-            }
-        ];
+        // 取得當前選中書籍物件（單書視角用）
+        const activeBook = useMemo(() => {
+          return books.find((b) => b.id === activeBookId) || books[0];
+        }, [books, activeBookId]);
 
-        function App() {
-            const [books, setBooks] = useState(() => {
-                const saved = localStorage.getItem('reading_notes_books');
-                return saved ? JSON.parse(saved) : INITIAL_BOOKS;
+        // 收集所有曾經有閱讀紀錄的日期清單（供日期快速切換列使用）
+        const allLoggedDates = useMemo(() => {
+          const dateMap = new Map();
+          books.forEach((book) => {
+            (book.chapters || []).forEach((ch) => {
+              if (ch.readDate) {
+                const prev = dateMap.get(ch.readDate) || { count: 0, mins: 0, bookTitles: new Set() };
+                prev.count += 1;
+                prev.mins += Number(ch.durationMinutes) || 0;
+                prev.bookTitles.add(book.title);
+                dateMap.set(ch.readDate, prev);
+              }
+            });
+          });
+          // 確保當前選中日期也在清單內
+          if (!dateMap.has(selectedDate)) {
+            dateMap.set(selectedDate, { count: 0, mins: 0, bookTitles: new Set() });
+          }
+          return Array.from(dateMap.entries())
+            .map(([date, info]) => ({
+              date,
+              chapterCount: info.count,
+              bookCount: info.bookTitles.size,
+              totalMins: info.mins
+            }))
+            .sort((a, b) => b.date.localeCompare(a.date));
+        }, [books, selectedDate]);
+
+        // 計算「選中日期 (selectedDate)」當天的所有跨書章節清單
+        const dailyChaptersList = useMemo(() => {
+          const list = [];
+          books.forEach((book) => {
+            (book.chapters || []).forEach((ch, idx) => {
+              if (ch.readDate === selectedDate) {
+                list.push({
+                  bookId: book.id,
+                  bookTitle: book.title,
+                  bookAuthor: book.author,
+                  bookTheme: book.theme || 'emerald',
+                  bookSerialNo: book.serialNo,
+                  chapterIndex: idx + 1,
+                  chapter: ch
+                });
+              }
+            });
+          });
+          return list;
+        }, [books, selectedDate]);
+
+        // 計算「選中日期」當天的統計指標
+        const dailyStats = useMemo(() => {
+          const uniqueBooks = new Set(dailyChaptersList.map((item) => item.bookId));
+          let totalMins = 0;
+          let totalQuotes = 0;
+          let totalOutputs = 0;
+          let totalActions = 0;
+
+          dailyChaptersList.forEach(({ chapter }) => {
+            totalMins += Number(chapter.durationMinutes) || 0;
+            (chapter.notes || []).forEach((n) => {
+              if (n.quote?.trim()) totalQuotes++;
+              if (n.paraphrase?.trim()) totalOutputs++;
+              if (n.actionText?.trim()) totalActions++;
+            });
+          });
+
+          return {
+            booksCount: uniqueBooks.size,
+            chaptersCount: dailyChaptersList.length,
+            totalMins,
+            totalQuotes,
+            totalOutputs,
+            totalActions
+          };
+        }, [dailyChaptersList]);
+
+        // 通用：更新特定書籍的資料
+        const updateBookById = (targetBookId, updater) => {
+          setBooks((prevBooks) =>
+            prevBooks.map((book) => {
+              if (book.id !== targetBookId) return book;
+              return typeof updater === 'function' ? updater(book) : { ...book, ...updater };
+            })
+          );
+        };
+
+        // 通用：更新特定書籍下的特定章節（在「今日跨書工作台」與「單書檢視」完全共用同步！）
+        const handleUpdateChapter = (bookId, chapterId, field, value) => {
+          updateBookById(bookId, (b) => ({
+            ...b,
+            chapters: b.chapters.map((ch) =>
+              ch.id === chapterId ? { ...ch, [field]: value } : ch
+            )
+          }));
+        };
+
+        // 通用：更新特定章節下的筆記卡（感觸金句 / 我的話語輸出 / 觸發行動）
+        const handleUpdateNoteCard = (bookId, chapterId, noteId, field, value) => {
+          updateBookById(bookId, (b) => ({
+            ...b,
+            chapters: b.chapters.map((ch) => {
+              if (ch.id !== chapterId) return ch;
+              return {
+                ...ch,
+                notes: ch.notes.map((n) =>
+                  n.id === noteId ? { ...n, [field]: value } : n
+                )
+              };
+            })
+          }));
+        };
+
+        // 通用：在特定書籍的章節內新增一張「感觸金句 ➔ 我的話語輸出」卡片
+        const handleAddNoteCard = (bookId, chapterId, defaultDateStr) => {
+          const recordDate = defaultDateStr || selectedDate || getTodayDateStr();
+          const newNote = {
+            id: `note-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            page: 'p.',
+            recordedAt: `${recordDate} ${getNowTimeStr()}`,
+            quote: '',
+            paraphrase: '',
+            actionText: '',
+            actionDone: false,
+            practiceLog: ''
+          };
+          updateBookById(bookId, (b) => ({
+            ...b,
+            chapters: b.chapters.map((ch) =>
+              ch.id === chapterId
+                ? { ...ch, isCollapsed: false, notes: [...ch.notes, newNote] }
+                : ch
+            )
+          }));
+        };
+
+        // 通用：刪除筆記卡
+        const handleDeleteNoteCard = (bookId, chapterId, noteId) => {
+          updateBookById(bookId, (b) => ({
+            ...b,
+            chapters: b.chapters.map((ch) => {
+              if (ch.id !== chapterId) return ch;
+              if (ch.notes.length <= 1) {
+                showToast('每個章節至少保留一張轉化卡，可直接修改內容');
+                return ch;
+              }
+              return {
+                ...ch,
+                notes: ch.notes.filter((n) => n.id !== noteId)
+              };
+            })
+          }));
+        };
+
+        // 通用：刪除章節
+        const handleDeleteChapter = (bookId, chapterId) => {
+          const targetBook = books.find((b) => b.id === bookId);
+          if (targetBook && targetBook.chapters.length <= 1) {
+            showToast('每本書至少需保留一個章節區塊');
+            return;
+          }
+          updateBookById(bookId, (b) => ({
+            ...b,
+            chapters: b.chapters.filter((ch) => ch.id !== chapterId)
+          }));
+          showToast('已移除該章節');
+        };
+
+        // 在「今日跨書工作台」快速新增今日讀的某本書章節
+        const handleQuickAddTodayChapter = (e) => {
+          e.preventDefault();
+          let targetBookId = quickChapterForm.bookId;
+          const themes = ['emerald', 'indigo', 'amber', 'rose'];
+
+          // 若選擇同時建立新書
+          if (quickChapterForm.isNewBook) {
+            if (!quickChapterForm.newBookTitle.trim()) {
+              showToast('請輸入新書籍的書名！');
+              return;
+            }
+            const newId = `book-${Date.now()}`;
+            const nextSerial = String(books.length + 1).padStart(3, '0');
+            const newChapterId = `ch-${Date.now()}-1`;
+            const newBookObj = {
+              id: newId,
+              serialNo: nextSerial,
+              theme: themes[books.length % themes.length],
+              title: quickChapterForm.newBookTitle.trim(),
+              author: quickChapterForm.newBookAuthor.trim() || '未知作者',
+              status: 'reading',
+              startDate: selectedDate,
+              endDate: '',
+              tags: ['平行閱讀'],
+              purpose: '',
+              chapters: [
+                {
+                  id: newChapterId,
+                  title: quickChapterForm.chapterTitle.trim() || '第一章：開始閱讀',
+                  readDate: selectedDate,
+                  timeSlot: quickChapterForm.timeSlot || `${getNowTimeStr()}`,
+                  pageRange: quickChapterForm.pageRange || '',
+                  durationMinutes: Number(quickChapterForm.durationMinutes) || 30,
+                  isCollapsed: false,
+                  notes: [
+                    {
+                      id: `note-${Date.now()}-1`,
+                      page: 'p.',
+                      recordedAt: `${selectedDate} ${getNowTimeStr()}`,
+                      quote: '',
+                      paraphrase: '',
+                      actionText: '',
+                      actionDone: false,
+                      practiceLog: ''
+                    }
+                  ]
+                }
+              ],
+              synthesis: '',
+              rereads: [
+                { stage: 1, label: '重讀筆記（第 1 次）', hint: '建議：完讀後 7 天內', completed: false, date: '', reflection: '' },
+                { stage: 2, label: '重讀筆記（第 2 次）', hint: '建議：完讀後 1 個月', completed: false, date: '', reflection: '' },
+                { stage: 3, label: '重讀筆記（第 3 次）', hint: '建議：完讀後 3 個月', completed: false, date: '', reflection: '' }
+              ]
+            };
+            setBooks((prev) => [...prev, newBookObj]);
+            setTimerTarget({ bookId: newId, chapterId: newChapterId });
+            showToast(`已新增書籍《${newBookObj.title}》並加入 ${selectedDate} 的閱讀工作台！`);
+          } else {
+            // 在既有書籍底下新增一個今日章節
+            const targetBook = books.find((b) => b.id === targetBookId);
+            if (!targetBook) return;
+            const nextChNum = targetBook.chapters.length + 1;
+            const newChapterId = `ch-${Date.now()}`;
+            const newChapter = {
+              id: newChapterId,
+              title: quickChapterForm.chapterTitle.trim() || `第 ${nextChNum} 章：章節筆記`,
+              readDate: selectedDate,
+              timeSlot: quickChapterForm.timeSlot || `${getNowTimeStr()}`,
+              pageRange: quickChapterForm.pageRange || '',
+              durationMinutes: Number(quickChapterForm.durationMinutes) || 30,
+              isCollapsed: false,
+              notes: [
+                {
+                  id: `note-${Date.now()}`,
+                  page: 'p.',
+                  recordedAt: `${selectedDate} ${getNowTimeStr()}`,
+                  quote: '',
+                  paraphrase: '',
+                  actionText: '',
+                  actionDone: false,
+                  practiceLog: ''
+                }
+              ]
+            };
+            updateBookById(targetBookId, (b) => ({
+              ...b,
+              chapters: [...b.chapters, newChapter]
+            }));
+            setTimerTarget({ bookId: targetBookId, chapterId: newChapterId });
+            showToast(`已在《${targetBook.title}》新增 ${selectedDate} 的閱讀章節！`);
+          }
+
+          setQuickChapterForm((prev) => ({
+            ...prev,
+            isNewBook: false,
+            newBookTitle: '',
+            newBookAuthor: '',
+            chapterTitle: '',
+            durationMinutes: 30
+          }));
+          setShowAddTodayChapter(false);
+        };
+
+        // 單書視角：新增一本書
+        const handleAddBookInSingleView = () => {
+          const nextNum = String(books.length + 1).padStart(3, '0');
+          const themes = ['emerald', 'indigo', 'amber', 'rose'];
+          const newBook = {
+            id: `book-${Date.now()}`,
+            serialNo: nextNum,
+            theme: themes[books.length % themes.length],
+            title: '新書籍筆記',
+            author: '',
+            status: 'reading',
+            startDate: selectedDate,
+            endDate: '',
+            tags: ['閱讀筆記'],
+            purpose: '',
+            chapters: [
+              {
+                id: `ch-${Date.now()}-1`,
+                title: '第一章：輸入章節標題',
+                readDate: selectedDate,
+                timeSlot: `${getNowTimeStr()}`,
+                pageRange: 'p.',
+                durationMinutes: 30,
+                isCollapsed: false,
+                notes: [
+                  {
+                    id: `note-${Date.now()}-1`,
+                    page: 'p.',
+                    recordedAt: `${selectedDate} ${getNowTimeStr()}`,
+                    quote: '',
+                    paraphrase: '',
+                    actionText: '',
+                    actionDone: false,
+                    practiceLog: ''
+                  }
+                ]
+              }
+            ],
+            synthesis: '',
+            rereads: [
+              { stage: 1, label: '重讀筆記（第 1 次）', hint: '建議：完讀後 7 天內', completed: false, date: '', reflection: '' },
+              { stage: 2, label: '重讀筆記（第 2 次）', hint: '建議：完讀後 1 個月', completed: false, date: '', reflection: '' },
+              { stage: 3, label: '重讀筆記（第 3 次）', hint: '建議：完讀後 3 個月', completed: false, date: '', reflection: '' }
+            ]
+          };
+          setBooks((prev) => [...prev, newBook]);
+          setActiveBookId(newBook.id);
+          setSelectedChapterId('all');
+          showToast('已建立新書籍筆記！');
+        };
+
+        // 單書視角：新增章節
+        const handleAddChapterInSingleView = () => {
+          const chIndex = activeBook.chapters.length + 1;
+          const newChapter = {
+            id: `ch-${Date.now()}`,
+            title: `第 ${chIndex} 章：輸入章節名稱`,
+            readDate: selectedDate,
+            timeSlot: `${getNowTimeStr()}`,
+            pageRange: 'p.',
+            durationMinutes: 30,
+            isCollapsed: false,
+            notes: [
+              {
+                id: `note-${Date.now()}`,
+                page: 'p.',
+                recordedAt: `${selectedDate} ${getNowTimeStr()}`,
+                quote: '',
+                paraphrase: '',
+                actionText: '',
+                actionDone: false,
+                practiceLog: ''
+              }
+            ]
+          };
+          updateBookById(activeBook.id, (b) => ({
+            ...b,
+            chapters: [...b.chapters, newChapter]
+          }));
+          showToast(`已新增第 ${chIndex} 章節（閱讀日設為 ${selectedDate}）`);
+        };
+
+        const handleDeleteBook = (bookId) => {
+          if (books.length <= 1) {
+            showToast('至少需保留一本書籍！');
+            setConfirmDeleteId(null);
+            return;
+          }
+          const filtered = books.filter((b) => b.id !== bookId);
+          setBooks(filtered);
+          if (activeBookId === bookId) {
+            setActiveBookId(filtered[0].id);
+          }
+          setConfirmDeleteId(null);
+          showToast('已刪除該本書籍筆記');
+        };
+
+        // 計時器：啟動指定書籍與章節的計時
+        const handleStartChapterTimer = (bookId, chapterId, bookTitle, chapterTitle) => {
+          setTimerTarget({ bookId, chapterId });
+          setTimerRunning(true);
+          showToast(`⏱️ 開始計時：《${bookTitle}》— ${chapterTitle}`);
+        };
+
+        // 計時器：完成並將分鐘數直接累加進該章節
+        const handleApplyTimerToChapter = () => {
+          setTimerRunning(false);
+          const addedMins = Math.max(1, Math.round(timerSeconds / 60));
+          const targetBook = books.find((b) => b.id === timerTarget.bookId);
+          const targetCh = targetBook?.chapters.find((c) => c.id === timerTarget.chapterId);
+
+          if (targetBook && targetCh) {
+            handleUpdateChapter(
+              targetBook.id,
+              targetCh.id,
+              'durationMinutes',
+              (Number(targetCh.durationMinutes) || 0) + addedMins
+            );
+            showToast(`已將 ${addedMins} 分鐘計入《${targetBook.title}》「${targetCh.title}」！`);
+          } else {
+            showToast(`計時結束（共 ${addedMins} 分鐘）`);
+          }
+          setTimerSeconds(0);
+        };
+
+        const formatTimerDisplay = (secs) => {
+          const m = String(Math.floor(secs / 60)).padStart(2, '0');
+          const s = String(secs % 60).padStart(2, '0');
+          return `${m}:${s}`;
+        };
+
+        // 單書統計指標計算
+        const singleBookStats = useMemo(() => {
+          let totalQuotes = 0;
+          let totalParaphrases = 0;
+          let totalMinutes = 0;
+          const uniqueDates = new Set();
+          const aggregatedActions = [];
+
+          if (activeBook.startDate) uniqueDates.add(activeBook.startDate);
+          if (activeBook.endDate) uniqueDates.add(activeBook.endDate);
+
+          (activeBook.chapters || []).forEach((ch) => {
+            totalMinutes += Number(ch.durationMinutes) || 0;
+            if (ch.readDate) uniqueDates.add(ch.readDate);
+            (ch.notes || []).forEach((n) => {
+              if (n.quote?.trim()) totalQuotes++;
+              if (n.paraphrase?.trim()) totalParaphrases++;
+              if (n.actionText?.trim()) {
+                aggregatedActions.push({
+                  chapterId: ch.id,
+                  chapterTitle: ch.title,
+                  chapterDate: ch.readDate,
+                  noteId: n.id,
+                  page: n.page,
+                  actionText: n.actionText,
+                  actionDone: n.actionDone,
+                  practiceLog: n.practiceLog
+                });
+              }
+            });
+          });
+
+          let spanDays = 1;
+          if (activeBook.startDate) {
+            const start = new Date(activeBook.startDate);
+            const end = activeBook.endDate ? new Date(activeBook.endDate) : new Date('2026-11-04');
+            const diffDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            spanDays = Math.max(1, diffDays);
+          }
+
+          return {
+            totalQuotes,
+            totalParaphrases,
+            totalMinutes,
+            activeDaysCount: uniqueDates.size,
+            spanDays,
+            aggregatedActions,
+            completedActions: aggregatedActions.filter((a) => a.actionDone).length,
+            completedRereads: (activeBook.rereads || []).filter((r) => r.completed).length
+          };
+        }, [activeBook]);
+
+        // 單書檢視下的章節過濾
+        const filteredSingleBookChapters = useMemo(() => {
+          const q = searchQuery.trim().toLowerCase();
+          return (activeBook.chapters || [])
+            .filter((ch) => selectedChapterId === 'all' || ch.id === selectedChapterId)
+            .map((ch) => {
+              if (!q) return ch;
+              const matchedNotes = ch.notes.filter(
+                (n) =>
+                  n.quote.toLowerCase().includes(q) ||
+                  n.paraphrase.toLowerCase().includes(q) ||
+                  n.actionText.toLowerCase().includes(q) ||
+                  ch.title.toLowerCase().includes(q)
+              );
+              return { ...ch, notes: matchedNotes };
+            })
+            .filter((ch) => !q || ch.notes.length > 0);
+        }, [activeBook.chapters, selectedChapterId, searchQuery]);
+
+        // 標籤與重讀更新（單書視角）
+        const handleAddTag = (e) => {
+          e.preventDefault();
+          const trimmed = newTagInput.trim();
+          if (!trimmed) return;
+          if (!activeBook.tags.includes(trimmed)) {
+            updateBookById(activeBook.id, (b) => ({ ...b, tags: [...b.tags, trimmed] }));
+          }
+          setNewTagInput('');
+        };
+
+        const handleRemoveTag = (tagToRemove) => {
+          updateBookById(activeBook.id, (b) => ({
+            ...b,
+            tags: b.tags.filter((t) => t !== tagToRemove)
+          }));
+        };
+
+        const handleUpdateReread = (stage, field, value) => {
+          updateBookById(activeBook.id, (b) => ({
+            ...b,
+            rereads: b.rereads.map((r) => {
+              if (r.stage !== stage) return r;
+              const updated = { ...r, [field]: value };
+              if (field === 'completed' && value === true && !r.date) {
+                updated.date = selectedDate;
+              }
+              return updated;
+            })
+          }));
+        };
+
+        // 產生 Markdown（支援「今日跨書日誌匯出」與「單書完整筆記匯出」）
+        const generateMarkdown = () => {
+          if (exportType === 'daily') {
+            let md = `# 🗓️ ${selectedDate} 跨書平行閱讀＆內化筆記日誌\n\n`;
+            md += `> **今日閱讀統計**：共讀 **${dailyStats.booksCount}** 本書 ｜ 推進 **${dailyStats.chaptersCount}** 個章節 ｜ 總計 **${formatMinutes(dailyStats.totalMins)}** ｜ 產出 **${dailyStats.totalOutputs}** 則個人話語輸出\n\n---\n\n`;
+
+            dailyChaptersList.forEach((item, idx) => {
+              const { bookTitle, bookAuthor, chapter } = item;
+              md += `## 📖 書籍 ${idx + 1}：《${bookTitle}》（${bookAuthor}）\n`;
+              md += `### 🔖 ${chapter.title}\n`;
+              md += `- **⏱️ 閱讀耗時**：${chapter.durationMinutes || 0} 分鐘 ${chapter.timeSlot ? `（時段：${chapter.timeSlot}）` : ''} ${chapter.pageRange ? `｜ **頁碼**：${chapter.pageRange}` : ''}\n\n`;
+
+              chapter.notes.forEach((n, nIdx) => {
+                md += `#### 觀點轉化卡 #${nIdx + 1} ${n.page ? `(${n.page})` : ''}\n`;
+                md += `- **💬 感觸金句（原文輸入）**：\n  > ${n.quote || '（未填寫）'}\n`;
+                md += `- **💡 我的話語輸出（內化收穫）**：\n  ${n.paraphrase || '（未填寫）'}\n`;
+                if (n.actionText?.trim()) {
+                  md += `- **⚡ 觸發微行動**：[${n.actionDone ? 'x' : ' '}] ${n.actionText}\n`;
+                  if (n.practiceLog?.trim()) {
+                    md += `  - *踐行分享*：${n.practiceLog}\n`;
+                  }
+                }
+                md += `\n`;
+              });
+              md += `---\n\n`;
             });
 
-            const [activeTab, setActiveTab] = useState('daily');
-            const [selectedBookId, setSelectedBookId] = useState(books[0]?.id || '');
-            const [todayDate, setTodayDate] = useState(() => new Date().toISOString().split('T')[0]);
-            const [hideQuotes, setHideQuotes] = useState(false);
-            
-            const [showSyncModal, setShowSyncModal] = useState(false);
-            const [githubToken, setGithubToken] = useState(() => localStorage.getItem('gh_token') || '');
-            const [gistId, setGistId] = useState(() => localStorage.getItem('gh_gist_id') || '');
-            const [syncStatus, setSyncStatus] = useState('');
+            if (dailySparks[selectedDate]?.trim()) {
+              md += `## ✨ 今日跨書思維碰撞 / 連結筆記\n\n`;
+              md += `${dailySparks[selectedDate]}\n`;
+            }
+            return md;
+          } else {
+            const b = activeBook;
+            let md = `# 📚 讀書筆記：《${b.title}》\n\n`;
+            md += `- **序號**：${b.serialNo || '-'}  |  **作者**：${b.author || '-'}  |  **狀態**：${b.status === 'completed' ? '✅ 已完讀' : '📖 閱讀中'}\n`;
+            md += `- **📅 閱讀期間**：${b.startDate || '-'} ～ ${b.endDate || '持續閱讀中'}（實際投入 ${singleBookStats.activeDaysCount} 天，累積 ${formatMinutes(singleBookStats.totalMinutes)}）\n`;
+            md += `- **🎯 閱讀目的**：\n  > ${b.purpose || '尚未填寫'}\n\n---\n\n`;
 
-            const [isTimerRunning, setIsTimerRunning] = useState(false);
-            const [secondsElapsed, setSecondsElapsed] = useState(0);
-            const timerRef = useRef(null);
-
-            useEffect(() => {
-                localStorage.setItem('reading_notes_books', JSON.stringify(books));
-            }, [books]);
-
-            useEffect(() => {
-                if (isTimerRunning) {
-                    timerRef.current = setInterval(() => {
-                        setSecondsElapsed(prev => prev + 1);
-                    }, 1000);
-                } else {
-                    clearInterval(timerRef.current);
+            md += `## 📖 逐章節「感觸金句 ➔ 我的話語輸出」\n\n`;
+            b.chapters.forEach((ch) => {
+              md += `### ${ch.title}\n`;
+              md += `> 📅 閱讀日期：${ch.readDate || '未記錄'} ${ch.timeSlot ? `(${ch.timeSlot})` : ''} ｜ ⏱️ 本章耗時：${ch.durationMinutes || 0} 分鐘\n\n`;
+              ch.notes.forEach((n, idx) => {
+                md += `#### 筆記 ${idx + 1} ${n.page ? `(${n.page})` : ''} — *記錄於 ${n.recordedAt || ''}*\n`;
+                md += `- **💬 感觸金句**：\n  > ${n.quote || '（未填寫）'}\n`;
+                md += `- **💡 我的話語輸出**：\n  ${n.paraphrase || '（未填寫）'}\n`;
+                if (n.actionText?.trim()) {
+                  md += `- **⚡ 觸發微行動**：[${n.actionDone ? 'x' : ' '}] ${n.actionText}\n`;
+                  if (n.practiceLog?.trim()) {
+                    md += `  - *踐行分享*：${n.practiceLog}\n`;
+                  }
                 }
-                return () => clearInterval(timerRef.current);
-            }, [isTimerRunning]);
+                md += `\n`;
+              });
+            });
 
-            const formatTime = (totalSeconds) => {
-                const mins = Math.floor(totalSeconds / 60);
-                const secs = totalSeconds % 60;
-                return `${mins}分 ${secs}秒`;
-            };
+            md += `---\n\n## 🌟 全書總結與實踐追蹤\n\n`;
+            md += `### 核心心得分享\n${b.synthesis || '（尚未填寫）'}\n\n`;
+            return md;
+          }
+        };
 
-            const handleAddBook = () => {
-                const newBook = {
-                    id: 'book-' + Date.now(),
-                    title: '新書籍名稱',
-                    author: '作者',
-                    startDate: new Date().toISOString().split('T')[0],
-                    endDate: '',
-                    status: 'reading',
-                    purpose: '寫下你閱讀本書的核心目的...',
-                    tags: ['新分類'],
-                    chapters: [
-                        {
-                            id: 'ch-' + Date.now(),
-                            title: 'Ch.1 第一章',
-                            readDate: new Date().toISOString().split('T')[0],
-                            durationMinutes: 30,
-                            notes: [
-                                {
-                                    id: 'note-' + Date.now(),
-                                    quote: '在此輸入觸動你的原文金句...',
-                                    output: '用自己的話輸出這句話的含義與連結...',
-                                    action: '想執行的微小行動...',
-                                    timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-                                }
-                            ]
-                        }
-                    ],
-                    synthesis: '',
-                    actions: [],
-                    reviews: [
-                        { times: 1, date: '', done: false },
-                        { times: 2, date: '', done: false },
-                        { times: 3, date: '', done: false }
-                    ]
-                };
-                setBooks([newBook, ...books]);
-                setSelectedBookId(newBook.id);
-            };
+        const handleCopyMarkdown = () => {
+          navigator.clipboard.writeText(generateMarkdown());
+          showToast('已複製 Markdown 內容至剪貼簿！');
+        };
 
-            const handleExportJSON = () => {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(books, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `reading_notes_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-            };
+        // 共用元件：渲染單一章節內的「感觸金句 ➔ 我的話語輸出」卡片列表
+        const renderChapterNotes = (bookId, chapter, isCompactGrid = false) => {
+          return (
+            <div className="p-4 sm:p-5 space-y-5 divide-y divide-stone-200/80">
+              {chapter.notes.map((note, noteIdx) => (
+                <div key={note.id} className={noteIdx > 0 ? 'pt-5' : ''}>
+                  {/* 卡片頂部資訊列 */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-stone-200 text-slate-800 text-[11px] font-bold">
+                        {noteIdx + 1}
+                      </span>
+                      <span className="text-xs font-semibold text-stone-600">
+                        觀點轉化卡 #{noteIdx + 1}
+                      </span>
+                      <div className="flex items-center gap-1 ml-1">
+                        <span className="text-[11px] text-stone-400">頁碼：</span>
+                        <input
+                          type="text"
+                          value={note.page}
+                          onChange={(e) =>
+                            handleUpdateNoteCard(bookId, chapter.id, note.id, 'page', e.target.value)
+                          }
+                          placeholder="p.25"
+                          className="w-16 px-2 py-0.5 text-xs font-mono rounded border border-stone-200 bg-stone-50 focus:outline-none focus:border-emerald-700 focus:bg-white"
+                        />
+                      </div>
+                    </div>
 
-            const handleImportJSON = (e) => {
-                const fileReader = new FileReader();
-                if (e.target.files[0]) {
-                    fileReader.readAsText(e.target.files[0], "UTF-8");
-                    fileReader.onload = event => {
-                        try {
-                            const parsed = JSON.parse(event.target.result);
-                            setBooks(parsed);
-                            alert('資料匯入成功！');
-                        } catch (err) {
-                            alert('檔案格式錯誤，無法解析 JSON。');
-                        }
-                    };
-                }
-            };
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 bg-stone-100 px-2 py-0.5 rounded text-[11px] text-stone-500">
+                        <Clock className="w-3 h-3 text-stone-400" />
+                        <input
+                          type="text"
+                          value={note.recordedAt || ''}
+                          onChange={(e) =>
+                            handleUpdateNoteCard(bookId, chapter.id, note.id, 'recordedAt', e.target.value)
+                          }
+                          className="w-28 bg-transparent font-mono text-[11px] text-slate-700 focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleDeleteNoteCard(bookId, chapter.id, note.id)}
+                        className="text-stone-400 hover:text-red-600 p-1"
+                        title="刪除此張轉化卡"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
 
-            const handleSyncToGist = async () => {
-                if (!githubToken) {
-                    alert('請先輸入 GitHub Personal Access Token (PAT)');
-                    setShowSyncModal(true);
-                    return;
-                }
-                setSyncStatus('正在同步至雲端...');
-                try {
-                    localStorage.setItem('gh_token', githubToken);
-                    const content = JSON.stringify(books, null, 2);
-                    let currentGistId = gistId;
-
-                    if (!currentGistId) {
-                        const res = await fetch('https://api.github.com/gists', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `token ${githubToken}`,
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                description: 'Reading Notes Cloud DB',
-                                public: false,
-                                files: { 'reading_notes_db.json': { content } }
-                            })
-                        });
-                        const data = await res.json();
-                        if (data.id) {
-                            currentGistId = data.id;
-                            setGistId(currentGistId);
-                            localStorage.setItem('gh_gist_id', currentGistId);
-                        } else {
-                            throw new Error(data.message || '建立 Gist 失敗');
-                        }
-                    } else {
-                        const res = await fetch(`https://api.github.com/gists/${currentGistId}`, {
-                            method: 'PATCH',
-                            headers: {
-                                'Authorization': `token ${githubToken}`,
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                files: { 'reading_notes_db.json': { content } }
-                            })
-                        });
-                        if (!res.ok) throw new Error('更新 Gist 失敗');
-                    }
-                    setSyncStatus('✅ 雲端同步成功！');
-                    setTimeout(() => setSyncStatus(''), 3000);
-                } catch (err) {
-                    setSyncStatus(`❌ 同步失敗: ${err.message}`);
-                }
-            };
-
-            const handleFetchFromGist = async () => {
-                if (!githubToken || !gistId) {
-                    alert('請先輸入 GitHub Token 與 Gist ID');
-                    setShowSyncModal(true);
-                    return;
-                }
-                setSyncStatus('正在從雲端載入...');
-                try {
-                    localStorage.setItem('gh_token', githubToken);
-                    localStorage.setItem('gh_gist_id', gistId);
-                    const res = await fetch(`https://api.github.com/gists/${gistId}`, {
-                        headers: { 'Authorization': `token ${githubToken}` }
-                    });
-                    const data = await res.json();
-                    if (data.files && data.files['reading_notes_db.json']) {
-                        const remoteData = JSON.parse(data.files['reading_notes_db.json'].content);
-                        setBooks(remoteData);
-                        setSyncStatus('✅ 成功從雲端載入最新筆記！');
-                        setTimeout(() => setSyncStatus(''), 3000);
-                    } else {
-                        throw new Error('找不到雲端備份檔案');
-                    }
-                } catch (err) {
-                    setSyncStatus(`❌ 載入失敗: ${err.message}`);
-                }
-            };
-
-            const todaysReadings = books.map(book => {
-                const matchedChapters = book.chapters.filter(ch => ch.readDate === todayDate);
-                return matchedChapters.length > 0 ? { ...book, activeChapters: matchedChapters } : null;
-            }).filter(Boolean);
-
-            const currentBook = books.find(b => b.id === selectedBookId) || books[0];
-
-            return (
-                <div className="min-h-screen pb-16">
-                    <header className="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
-                        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-indigo-600 p-2 rounded-lg text-white">
-                                    <Icon name="book" className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <h1 className="text-lg font-bold">逐章節讀書筆記與內化系統</h1>
-                                    <p className="text-xs text-slate-400">感觸原句 ➔ 我的話語轉化 ➔ 跨裝置同步</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center bg-slate-800 p-1 rounded-xl">
-                                <button 
-                                    onClick={() => setActiveTab('daily')}
-                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 ${activeTab === 'daily' ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
-                                >
-                                    <Icon name="calendar" /> 今日跨書工作台
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('books')}
-                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition flex items-center gap-2 ${activeTab === 'books' ? 'bg-indigo-600 text-white shadow' : 'text-slate-300 hover:text-white'}`}
-                                >
-                                    <Icon name="layers" /> 單書完整脈絡
-                                </button>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <div className="hidden lg:flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg text-xs">
-                                    <Icon name="clock" className="w-4 h-4 text-indigo-400" />
-                                    <span>碼錶：{formatTime(secondsElapsed)}</span>
-                                    <button 
-                                        onClick={() => setIsTimerRunning(!isTimerRunning)}
-                                        className={`px-2 py-0.5 rounded ${isTimerRunning ? 'bg-amber-600' : 'bg-emerald-600'} text-white font-bold`}
-                                    >
-                                        {isTimerRunning ? '暫停' : '開始'}
-                                    </button>
-                                    <button onClick={() => setSecondsElapsed(0)} className="text-slate-400 hover:text-white">重置</button>
-                                </div>
-                                <button 
-                                    onClick={() => setShowSyncModal(true)}
-                                    className="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1.5 transition shadow"
-                                >
-                                    <Icon name="cloud" /> 雲端同步設定
-                                </button>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-6xl mx-auto px-4 mt-6">
-                        {activeTab === 'daily' ? (
-                            <div className="space-y-6">
-                                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                                            <Icon name="calendar" className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-slate-800">今日閱讀日誌與跨書對讀</h2>
-                                            <p className="text-sm text-slate-500">一天看多本書？在這裡同時推進各書當日章節。</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <label className="text-sm font-medium text-slate-600">工作日期：</label>
-                                        <input 
-                                            type="date" 
-                                            value={todayDate}
-                                            onChange={(e) => setTodayDate(e.target.value)}
-                                            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    {todaysReadings.length === 0 ? (
-                                        <div className="bg-white p-12 rounded-2xl text-center border border-dashed border-slate-300">
-                                            <Icon name="book" className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                                            <h3 className="text-lg font-bold text-slate-700">今日尚無綁定此日期的章節</h3>
-                                            <p className="text-sm text-slate-500 mt-1 mb-4">切換至「單書完整脈絡」挑選書籍，並將章節的「閱讀日期」設定為今天（{todayDate}）。</p>
-                                            <button 
-                                                onClick={() => setActiveTab('books')}
-                                                className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-medium shadow hover:bg-indigo-500 transition"
-                                            >
-                                                前往單書脈絡新增／編輯章節
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        todaysReadings.map(book => (
-                                            <div key={book.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                                                <div className="bg-slate-800 text-white px-6 py-3 flex justify-between items-center">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="bg-indigo-500 text-xs px-2.5 py-1 rounded-full font-bold">{book.author}</span>
-                                                        <h3 className="font-bold text-lg">{book.title}</h3>
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => { setSelectedBookId(book.id); setActiveTab('books'); }}
-                                                        className="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-lg transition"
-                                                    >
-                                                        前往單書詳情 ➔
-                                                    </button>
-                                                </div>
-
-                                                <div className="p-6 space-y-6">
-                                                    {book.activeChapters.map(ch => (
-                                                        <div key={ch.id} className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-                                                            <div className="flex justify-between items-center">
-                                                                <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                                                                    <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
-                                                                    {ch.title}
-                                                                </h4>
-                                                                <span className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg font-medium">
-                                                                    耗時：{ch.durationMinutes} 分鐘
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="space-y-4">
-                                                                {ch.notes.map((note, nIdx) => (
-                                                                    <div key={note.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-                                                                        <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200/60 flex flex-col justify-between">
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-amber-800 mb-1 flex items-center justify-between">
-                                                                                    <span>📌 觸動原句 #{nIdx + 1}</span>
-                                                                                    <span className="text-[10px] text-slate-400">{note.timestamp}</span>
-                                                                                </div>
-                                                                                <textarea 
-                                                                                    value={note.quote}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setBooks(books.map(b => b.id === book.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.map(n => n.id === note.id ? { ...n, quote: val } : n)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    className="w-full bg-transparent text-sm text-slate-800 focus:outline-none resize-none"
-                                                                                    rows="3"
-                                                                                    placeholder="輸入有感觸的原文..."
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 flex flex-col justify-between space-y-3">
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-indigo-900 mb-1">💡 我的話語輸出（內化轉譯）</div>
-                                                                                <textarea 
-                                                                                    value={note.output}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setBooks(books.map(b => b.id === book.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.map(n => n.id === note.id ? { ...n, output: val } : n)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    className="w-full bg-transparent text-sm text-slate-800 focus:outline-none resize-none"
-                                                                                    rows="3"
-                                                                                    placeholder="用自己的話重述這句話，或寫下為什麼打中你..."
-                                                                                />
-                                                                            </div>
-                                                                            <div className="pt-2 border-t border-indigo-100 flex items-center gap-2">
-                                                                                <span className="text-xs font-bold text-indigo-700">⚡ 微行動：</span>
-                                                                                <input 
-                                                                                    type="text" 
-                                                                                    value={note.action}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setBooks(books.map(b => b.id === book.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.map(n => n.id === note.id ? { ...n, action: val } : n)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    placeholder="明天可以立刻嘗試的小行動..."
-                                                                                    className="w-full text-xs bg-transparent focus:outline-none text-slate-700"
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                                <div className="lg:col-span-1 space-y-4">
-                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                                <Icon name="book" className="w-4 h-4 text-indigo-600" /> 我的書櫃
-                                            </h3>
-                                            <button 
-                                                onClick={handleAddBook}
-                                                className="bg-indigo-600 hover:bg-indigo-500 text-white p-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition"
-                                            >
-                                                <Icon name="plus" /> 新增書籍
-                                            </button>
-                                        </div>
-                                        <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                                            {books.map(book => (
-                                                <div 
-                                                    key={book.id}
-                                                    onClick={() => setSelectedBookId(book.id)}
-                                                    className={`p-3 rounded-xl cursor-pointer transition border ${book.id === selectedBookId ? 'bg-indigo-50 border-indigo-300 shadow-xs' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
-                                                >
-                                                    <h4 className="font-bold text-sm text-slate-800 truncate">{book.title}</h4>
-                                                    <div className="flex justify-between items-center mt-1">
-                                                        <span className="text-xs text-slate-500">{book.author}</span>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${book.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                                                            {book.status === 'completed' ? '已完讀' : '閱讀中'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="lg:col-span-3 space-y-6">
-                                    {currentBook && (
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
-                                            <div className="border-b border-slate-100 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                                <div className="space-y-2 flex-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <input 
-                                                            type="text" 
-                                                            value={currentBook.title}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setBooks(books.map(b => b.id === currentBook.id ? { ...b, title: val } : b));
-                                                            }}
-                                                            className="text-2xl font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none w-full"
-                                                        />
-                                                    </div>
-                                                    <div className="flex items-center gap-3 text-sm text-slate-500">
-                                                        <span>作者：</span>
-                                                        <input 
-                                                            type="text" 
-                                                            value={currentBook.author}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setBooks(books.map(b => b.id === currentBook.id ? { ...b, author: val } : b));
-                                                            }}
-                                                            className="bg-slate-50 px-2 py-1 rounded border border-slate-200 text-slate-700 font-medium"
-                                                        />
-                                                        <span>狀態：</span>
-                                                        <select 
-                                                            value={currentBook.status}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setBooks(books.map(b => b.id === currentBook.id ? { ...b, status: val } : b));
-                                                            }}
-                                                            className="bg-slate-50 px-2 py-1 rounded border border-slate-200 text-slate-700 font-medium text-xs"
-                                                        >
-                                                            <option value="reading">閱讀推進中</option>
-                                                            <option value="completed">已完讀</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <button 
-                                                        onClick={() => setHideQuotes(!hideQuotes)}
-                                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition ${hideQuotes ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                                                    >
-                                                        <Icon name={hideQuotes ? "eyeOff" : "eye"} />
-                                                        {hideQuotes ? '內化檢測中（隱藏原句）' : '檢測模式'}
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => {
-                                                            if (confirm('確定要刪除這本書嗎？')) {
-                                                                setBooks(books.filter(b => b.id !== currentBook.id));
-                                                                setSelectedBookId(books[0]?.id || '');
-                                                            }
-                                                        }}
-                                                        className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition"
-                                                        title="刪除此書"
-                                                    >
-                                                        <Icon name="trash" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1.5">
-                                                    <label className="text-xs font-bold text-slate-600">🎯 閱讀目的（核心提問）</label>
-                                                    <textarea 
-                                                        value={currentBook.purpose}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setBooks(books.map(b => b.id === currentBook.id ? { ...b, purpose: val } : b));
-                                                        }}
-                                                        rows="2"
-                                                        className="w-full bg-white p-2 rounded border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                    />
-                                                </div>
-                                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                                                    <label className="text-xs font-bold text-slate-600">📅 閱讀日期起訖與統計</label>
-                                                    <div className="flex items-center gap-2 text-xs">
-                                                        <span>開始：</span>
-                                                        <input 
-                                                            type="date" 
-                                                            value={currentBook.startDate}
-                                                            onChange={(e) => setBooks(books.map(b => b.id === currentBook.id ? { ...b, startDate: e.target.value } : b))}
-                                                            className="bg-white p-1.5 rounded border border-slate-200"
-                                                        />
-                                                        <span>完讀：</span>
-                                                        <input 
-                                                            type="date" 
-                                                            value={currentBook.endDate}
-                                                            onChange={(e) => setBooks(books.map(b => b.id === currentBook.id ? { ...b, endDate: e.target.value } : b))}
-                                                            className="bg-white p-1.5 rounded border border-slate-200"
-                                                        />
-                                                    </div>
-                                                    <div className="text-xs text-slate-500 pt-1">
-                                                        累積總耗時：
-                                                        <span className="font-bold text-indigo-600">
-                                                            {currentBook.chapters.reduce((acc, c) => acc + (Number(c.durationMinutes) || 0), 0)} 分鐘
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-6 pt-4 border-t border-slate-100">
-                                                <div className="flex justify-between items-center">
-                                                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">📖 逐章節筆記流水線</h3>
-                                                    <button 
-                                                        onClick={() => {
-                                                            const newCh = {
-                                                                id: 'ch-' + Date.now(),
-                                                                title: `Ch.${currentBook.chapters.length + 1} 新章節`,
-                                                                readDate: new Date().toISOString().split('T')[0],
-                                                                durationMinutes: 30,
-                                                                notes: [
-                                                                    {
-                                                                        id: 'note-' + Date.now(),
-                                                                        quote: '輸入觸動原句...',
-                                                                        output: '輸入我的話語輸出...',
-                                                                        action: '微行動...',
-                                                                        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-                                                                    }
-                                                                ]
-                                                            };
-                                                            setBooks(books.map(b => b.id === currentBook.id ? { ...b, chapters: [...b.chapters, newCh] } : b));
-                                                        }}
-                                                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1 transition shadow"
-                                                    >
-                                                        <Icon name="plus" /> 新增章節
-                                                    </button>
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    {currentBook.chapters.map((ch, cIdx) => (
-                                                        <div key={ch.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4 shadow-2xs">
-                                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 border-b border-slate-200">
-                                                                <div className="flex items-center gap-2 w-full md:w-auto flex-1">
-                                                                    <span className="bg-indigo-600 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">
-                                                                        {cIdx + 1}
-                                                                    </span>
-                                                                    <input 
-                                                                        type="text" 
-                                                                        value={ch.title}
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.value;
-                                                                            setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                ...b,
-                                                                                chapters: b.chapters.map(c => c.id === ch.id ? { ...c, title: val } : c)
-                                                                            } : b));
-                                                                        }}
-                                                                        className="font-bold text-slate-800 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-indigo-500 focus:outline-none flex-1"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-3 text-xs">
-                                                                    <div className="flex items-center gap-1">
-                                                                        <span>閱讀日期：</span>
-                                                                        <input 
-                                                                            type="date" 
-                                                                            value={ch.readDate}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value;
-                                                                                setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                    ...b,
-                                                                                    chapters: b.chapters.map(c => c.id === ch.id ? { ...c, readDate: val } : c)
-                                                                                } : b));
-                                                                            }}
-                                                                            className="bg-white px-2 py-1 rounded border border-slate-200"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1">
-                                                                        <span>耗時(分)：</span>
-                                                                        <input 
-                                                                            type="number" 
-                                                                            value={ch.durationMinutes}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value;
-                                                                                setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                    ...b,
-                                                                                    chapters: b.chapters.map(c => c.id === ch.id ? { ...c, durationMinutes: val } : c)
-                                                                                } : b));
-                                                                            }}
-                                                                            className="w-16 bg-white px-2 py-1 rounded border border-slate-200 text-center"
-                                                                        />
-                                                                    </div>
-                                                                    <button 
-                                                                        onClick={() => {
-                                                                            setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                ...b,
-                                                                                chapters: b.chapters.filter(c => c.id !== ch.id)
-                                                                            } : b));
-                                                                        }}
-                                                                        className="text-rose-500 hover:text-rose-700 p-1"
-                                                                    >
-                                                                        <Icon name="trash" />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-4">
-                                                                {ch.notes.map((note, nIdx) => (
-                                                                    <div key={note.id} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-slate-200">
-                                                                        <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200/60 flex flex-col justify-between">
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-amber-800 mb-1 flex items-center justify-between">
-                                                                                    <span>📌 原文金句 #{nIdx + 1}</span>
-                                                                                    <span className="text-[10px] text-slate-400">{note.timestamp}</span>
-                                                                                </div>
-                                                                                <textarea 
-                                                                                    value={note.quote}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.map(n => n.id === note.id ? { ...n, quote: val } : n)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    className={`w-full bg-transparent text-sm text-slate-800 focus:outline-none resize-none transition ${hideQuotes ? 'blur-sm hover:blur-none select-none' : ''}`}
-                                                                                    rows="3"
-                                                                                    placeholder="輸入有感觸的原文..."
-                                                                                />
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="bg-indigo-50/40 p-4 rounded-lg border border-indigo-100 flex flex-col justify-between space-y-3">
-                                                                            <div>
-                                                                                <div className="text-xs font-bold text-indigo-900 mb-1">💡 我的話語輸出（內化轉譯）</div>
-                                                                                <textarea 
-                                                                                    value={note.output}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value;
-                                                                                        setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.map(n => n.id === note.id ? { ...n, output: val } : n)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    className="w-full bg-transparent text-sm text-slate-800 focus:outline-none resize-none"
-                                                                                    rows="3"
-                                                                                    placeholder="用自己的話重述這句話..."
-                                                                                />
-                                                                            </div>
-                                                                            <div className="pt-2 border-t border-indigo-100 flex items-center justify-between gap-2">
-                                                                                <div className="flex items-center gap-1.5 flex-1">
-                                                                                    <span className="text-xs font-bold text-indigo-700">⚡ 行動：</span>
-                                                                                    <input 
-                                                                                        type="text" 
-                                                                                        value={note.action}
-                                                                                        onChange={(e) => {
-                                                                                            const val = e.target.value;
-                                                                                            setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                                ...b,
-                                                                                                chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                    ...c,
-                                                                                                    notes: c.notes.map(n => n.id === note.id ? { ...n, action: val } : n)
-                                                                                                } : c)
-                                                                                            } : b));
-                                                                                        }}
-                                                                                        placeholder="明天可嘗試的小行動..."
-                                                                                        className="w-full text-xs bg-transparent focus:outline-none text-slate-700"
-                                                                                    />
-                                                                                </div>
-                                                                                <button 
-                                                                                    onClick={() => {
-                                                                                        setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                            ...b,
-                                                                                            chapters: b.chapters.map(c => c.id === ch.id ? {
-                                                                                                ...c,
-                                                                                                notes: c.notes.filter(n => n.id !== note.id)
-                                                                                            } : c)
-                                                                                        } : b));
-                                                                                    }}
-                                                                                    className="text-slate-400 hover:text-rose-500 p-1 transition"
-                                                                                >
-                                                                                    <Icon name="trash" className="w-3.5 h-3.5" />
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-
-                                                                <button 
-                                                                    onClick={() => {
-                                                                        const newNote = {
-                                                                            id: 'note-' + Date.now(),
-                                                                            quote: '新觸動原句...',
-                                                                            output: '新個人輸出...',
-                                                                            action: '新微行動...',
-                                                                            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16)
-                                                                        };
-                                                                        setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                            ...b,
-                                                                            chapters: b.chapters.map(c => c.id === ch.id ? { ...c, notes: [...c.notes, newNote] } : c)
-                                                                        } : b));
-                                                                    }}
-                                                                    className="w-full py-2 bg-white border border-dashed border-slate-300 hover:border-indigo-400 hover:text-indigo-600 rounded-xl text-xs font-medium text-slate-500 transition flex items-center justify-center gap-1"
-                                                                >
-                                                                    <Icon name="plus" className="w-3.5 h-3.5" /> 在本章新增一則金句與輸出
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-100">
-                                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                                                    <h4 className="font-bold text-slate-800 text-sm">✍️ 全書核心心得分享 (Synthesis)</h4>
-                                                    <textarea 
-                                                        value={currentBook.synthesis}
-                                                        onChange={(e) => {
-                                                            const val = e.target.value;
-                                                            setBooks(books.map(b => b.id === currentBook.id ? { ...b, synthesis: val } : b));
-                                                        }}
-                                                        rows="4"
-                                                        placeholder="統整這本書帶給你的最大觀點轉變與收穫..."
-                                                        className="w-full bg-white p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                    />
-                                                </div>
-
-                                                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3">
-                                                    <h4 className="font-bold text-slate-800 text-sm">🔄 間隔重讀打卡（對抗遺忘曲線）</h4>
-                                                    <div className="space-y-2">
-                                                        {currentBook.reviews.map((rev, rIdx) => (
-                                                            <div key={rIdx} className="flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200">
-                                                                <div className="flex items-center gap-2 text-xs font-medium">
-                                                                    <input 
-                                                                        type="checkbox" 
-                                                                        checked={rev.done}
-                                                                        onChange={(e) => {
-                                                                            const checked = e.target.checked;
-                                                                            const dateStr = checked ? new Date().toISOString().split('T')[0] : '';
-                                                                            setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                                ...b,
-                                                                                reviews: b.reviews.map((r, i) => i === rIdx ? { ...r, done: checked, date: dateStr } : r)
-                                                                            } : b));
-                                                                        }}
-                                                                        className="w-4 h-4 text-indigo-600 rounded"
-                                                                    />
-                                                                    <span>重讀筆記（第 {rev.times} 次）</span>
-                                                                </div>
-                                                                <input 
-                                                                    type="date" 
-                                                                    value={rev.date}
-                                                                    onChange={(e) => {
-                                                                        const val = e.target.value;
-                                                                        setBooks(books.map(b => b.id === currentBook.id ? {
-                                                                            ...b,
-                                                                            reviews: b.reviews.map((r, i) => i === rIdx ? { ...r, date: val } : r)
-                                                                        } : b));
-                                                                    }}
-                                                                    className="text-xs bg-slate-50 p-1 rounded border border-slate-200"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                  {/* 感觸金句 ➔ 我的話語輸出（在雙欄對讀模式下自動調整排版以維持最佳閱讀寬度） */}
+                  <div
+                    className={`grid grid-cols-1 ${
+                      isCompactGrid ? 'xl:grid-cols-12' : 'md:grid-cols-12'
+                    } gap-3.5 items-stretch`}
+                  >
+                    {/* 左欄：感觸金句 */}
+                    <div
+                      className={`${
+                        isCompactGrid ? 'xl:col-span-5' : 'md:col-span-5'
+                      } rounded-xl p-3.5 border transition-all flex flex-col ${
+                        focusMode === 'outputOnly'
+                          ? 'bg-stone-100/70 border-stone-200 select-none'
+                          : 'bg-stone-50/90 border-stone-200/90'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                          <Quote className="w-3.5 h-3.5 text-stone-500" />
+                          【感觸金句】書中原句摘錄
+                        </label>
+                        {focusMode === 'outputOnly' && (
+                          <span className="text-[10px] text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                            懸停偷看
+                          </span>
                         )}
-                    </main>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={note.quote}
+                        onChange={(e) =>
+                          handleUpdateNoteCard(bookId, chapter.id, note.id, 'quote', e.target.value)
+                        }
+                        placeholder="先記錄這章讓你有感觸的句子..."
+                        className={`w-full flex-1 bg-transparent text-xs sm:text-sm text-slate-700 placeholder-stone-400 border-l-2 border-stone-400 pl-2.5 py-1 italic leading-relaxed focus:outline-none focus:border-emerald-700 resize-y transition-all ${
+                          focusMode === 'outputOnly' ? 'blur-xs hover:blur-none focus:blur-none' : ''
+                        }`}
+                      />
+                    </div>
 
-                    {showSyncModal && (
-                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-xl border border-slate-200">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2">
-                                        <Icon name="cloud" className="w-5 h-5 text-indigo-600" /> GitHub Gist 跨裝置雲端同步
-                                    </h3>
-                                    <button onClick={() => setShowSyncModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-                                </div>
+                    {/* 右欄：我的話語輸出 */}
+                    <div
+                      className={`${
+                        isCompactGrid ? 'xl:col-span-7' : 'md:col-span-7'
+                      } rounded-xl p-3.5 bg-emerald-50/40 border-2 border-emerald-800/20 focus-within:border-emerald-800 focus-within:bg-white transition-all flex flex-col`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                          【我的話語輸出】用自己的話內化重述
+                        </label>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">
+                          自我轉譯
+                        </span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={note.paraphrase}
+                        onChange={(e) =>
+                          handleUpdateNoteCard(bookId, chapter.id, note.id, 'paraphrase', e.target.value)
+                        }
+                        placeholder="不看原句，用自己的話說一次：這句話的核心是什麼？跟我的什麼經驗或另一本書有關？"
+                        className="w-full flex-1 bg-transparent text-xs sm:text-sm text-slate-900 font-medium placeholder-stone-400 leading-relaxed focus:outline-none resize-y"
+                      />
+                    </div>
+                  </div>
 
-                                <p className="text-xs text-slate-600 leading-relaxed">
-                                    利用你自己的 GitHub 帳號作為免費私密雲端資料庫。只需設定一次，手機與電腦即可無縫同步讀書筆記！
-                                </p>
-
-                                <div className="space-y-4">
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-700">1. GitHub Personal Access Token (PAT)</label>
-                                        <input 
-                                            type="password" 
-                                            value={githubToken}
-                                            onChange={(e) => setGithubToken(e.target.value)}
-                                            placeholder="請貼上 ghp_... 開頭的 Token"
-                                            className="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                                        />
-                                        <p className="text-[11px] text-slate-400">至 GitHub Settings ➔ Developer settings ➔ Personal access tokens (classic) 產出，勾選 gist 權限即可。</p>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-700">2. Gist ID（首次同步請留空，系統會自動建立）</label>
-                                        <input 
-                                            type="text" 
-                                            value={gistId}
-                                            onChange={(e) => setGistId(e.target.value)}
-                                            placeholder="例如：a1b2c3d4e5f6..."
-                                            className="w-full bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-                                        />
-                                    </div>
-
-                                    {syncStatus && (
-                                        <div className="p-3 bg-slate-100 rounded-xl text-xs font-medium text-slate-800 text-center">
-                                            {syncStatus}
-                                        </div>
-                                    )}
-
-                                    <div className="grid grid-cols-2 gap-3 pt-2">
-                                        <button 
-                                            onClick={handleSyncToGist}
-                                            className="bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm font-bold shadow transition flex items-center justify-center gap-1.5"
-                                        >
-                                            <Icon name="upload" /> 同步至雲端
-                                        </button>
-                                        <button 
-                                            onClick={handleFetchFromGist}
-                                            className="bg-slate-800 hover:bg-slate-700 text-white py-2.5 rounded-xl text-sm font-bold shadow transition flex items-center justify-center gap-1.5"
-                                        >
-                                            <Icon name="refresh" /> 從雲端載入
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="border-t border-slate-100 pt-4 flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <button 
-                                            onClick={handleExportJSON}
-                                            className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium"
-                                        >
-                                            <Icon name="download" className="w-3.5 h-3.5" /> 備份下載 JSON
-                                        </button>
-                                        <label className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium cursor-pointer">
-                                            <Icon name="upload" className="w-3.5 h-3.5" /> 匯入 JSON
-                                            <input type="file" onChange={handleImportJSON} className="hidden" accept=".json" />
-                                        </label>
-                                    </div>
-                                    <button 
-                                        onClick={() => setShowSyncModal(false)}
-                                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold transition"
-                                    >
-                                        關閉
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                  {/* 底部：微行動觸發 */}
+                  <div className="mt-2.5 flex flex-wrap sm:flex-nowrap items-center gap-2 bg-stone-50/90 px-3 py-2 rounded-xl border border-stone-200/80">
+                    <div className="flex items-center gap-1 text-xs font-bold text-amber-900 shrink-0">
+                      <Zap className="w-3.5 h-3.5 text-amber-600" />
+                      <span>行動：</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={note.actionText}
+                      onChange={(e) =>
+                        handleUpdateNoteCard(bookId, chapter.id, note.id, 'actionText', e.target.value)
+                      }
+                      placeholder="（選填）從這段輸出延伸出的具體微行動..."
+                      className="w-full bg-transparent text-xs text-slate-800 placeholder-stone-400 focus:outline-none focus:bg-white focus:px-2 py-0.5 rounded"
+                    />
+                    {note.actionText?.trim() && (
+                      <button
+                        onClick={() =>
+                          handleUpdateNoteCard(
+                            bookId,
+                            chapter.id,
+                            note.id,
+                            'actionDone',
+                            !note.actionDone
+                          )
+                        }
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 transition-colors ${
+                          note.actionDone
+                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                            : 'bg-white text-stone-600 border border-stone-300'
+                        }`}
+                      >
+                        {note.actionDone ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                            已實踐
+                          </>
+                        ) : (
+                          <>
+                            <Circle className="w-3 h-3 text-stone-400" />
+                            待執行
+                          </>
+                        )}
+                      </button>
                     )}
+                  </div>
                 </div>
-            );
-        }
+              ))}
 
-        // 使用 React 18 標準掛載語法
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+              {/* 新增下一張卡片按鈕 */}
+              <div className="pt-3 print:hidden">
+                <button
+                  onClick={() => handleAddNoteCard(bookId, chapter.id, chapter.readDate)}
+                  className="w-full py-2 rounded-xl border border-dashed border-stone-300 text-xs font-semibold text-stone-500 hover:text-emerald-900 hover:border-emerald-700 hover:bg-emerald-50/40 transition-all flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  在本章新增下一則「感觸金句 ➔ 我的話語輸出」
+                </button>
+              </div>
+            </div>
+          );
+        };
+
+        // 取得目前計時器綁定的書籍與章節名稱
+        const currentTimedBook = books.find((b) => b.id === timerTarget.bookId);
+
+        return (
+          <div className="min-h-screen bg-[#F6F4EE] text-slate-800 font-sans selection:bg-emerald-800 selection:text-white pb-20">
+            {/* 浮動 Toast 提示 */}
+            {toastMessage && (
+              <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-slate-900 text-stone-100 px-4 py-3 rounded-xl shadow-xl border border-slate-700 animate-bounce">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-sm font-medium">{toastMessage}</span>
+              </div>
+            )}
+
+            {/* 頂部導覽列：包含「雙視角切換器（今日跨書工作台 vs 單書完整脈絡）」與「智慧綁定計時器」 */}
+            <header className="sticky top-0 z-30 bg-[#F6F4EE]/95 backdrop-blur-md border-b border-stone-200/90 px-4 sm:px-8 py-3 print:hidden">
+              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                {/* 左側：品牌與核心雙模式切換器 */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-950 text-stone-100 flex items-center justify-center shadow-sm shrink-0">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900">
+                        格格讀書行動營・跨書平行內化系統
+                      </h1>
+                      <p className="text-[11px] text-stone-500">
+                        支援「一天讀 2+ 本書（每本推進一章）」與「單書完整脈絡」雙向自動同步
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 核心雙視角切換器 (Mode Switcher) */}
+                  <div className="inline-flex p-1 rounded-xl bg-stone-200/90 border border-stone-300/80 shadow-inner">
+                    <button
+                      onClick={() => setViewMode('daily')}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                        viewMode === 'daily'
+                          ? 'bg-emerald-950 text-white shadow-sm'
+                          : 'text-stone-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <CalendarDays className="w-4 h-4 text-amber-400" />
+                      <span>今日跨書工作台</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                          viewMode === 'daily'
+                            ? 'bg-emerald-800 text-emerald-100'
+                            : 'bg-stone-300 text-stone-700'
+                        }`}
+                      >
+                        一天多本
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => setViewMode('book')}
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+                        viewMode === 'book'
+                          ? 'bg-emerald-950 text-white shadow-sm'
+                          : 'text-stone-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <BookMarked className="w-4 h-4 text-emerald-400" />
+                      <span>單書完整脈絡</span>
+                      <span
+                        className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                          viewMode === 'book'
+                            ? 'bg-emerald-800 text-emerald-100'
+                            : 'bg-stone-300 text-stone-700'
+                        }`}
+                      >
+                        {books.length} 本書
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 右側：跨書章節計時器、內化檢測模式、匯出按鈕 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* 智慧章節計時器 */}
+                  <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-xl px-2.5 py-1.5 shadow-sm">
+                    <Timer
+                      className={`w-4 h-4 shrink-0 ${
+                        timerRunning ? 'text-amber-600 animate-pulse' : 'text-stone-500'
+                      }`}
+                    />
+                    <div className="text-[11px] max-w-[140px] truncate hidden sm:block text-stone-600">
+                      {currentTimedBook ? `《${currentTimedBook.title.slice(0, 6)}..》` : '選擇章節'}
+                    </div>
+                    <span className="text-xs font-mono font-bold text-slate-900 min-w-[42px] text-center">
+                      {formatTimerDisplay(timerSeconds)}
+                    </span>
+                    {!timerRunning ? (
+                      <button
+                        onClick={() => setTimerRunning(true)}
+                        className="p-1 rounded bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                        title="開始計時當前章節"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setTimerRunning(false)}
+                        className="p-1 rounded bg-amber-50 text-amber-800 hover:bg-amber-100"
+                        title="暫停計時"
+                      >
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    )}
+                    {(timerSeconds > 0 || timerRunning) && (
+                      <button
+                        onClick={handleApplyTimerToChapter}
+                        className="px-2 py-0.5 rounded bg-emerald-900 text-white hover:bg-emerald-800 text-[10px] font-semibold"
+                        title="將計時分鐘數直接加進該章節"
+                      >
+                        寫入章節時長
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 內化檢測模式開關 */}
+                  <button
+                    onClick={() =>
+                      setFocusMode((prev) => (prev === 'split' ? 'outputOnly' : 'split'))
+                    }
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                      focusMode === 'outputOnly'
+                        ? 'bg-amber-600 text-white border-amber-700 ring-2 ring-amber-500/30'
+                        : 'bg-white text-slate-700 border-stone-300 hover:bg-stone-50'
+                    }`}
+                  >
+                    {focusMode === 'outputOnly' ? (
+                      <>
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span>內化檢測：只看我的輸出</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>對照模式</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* 匯出按鈕 */}
+                  <button
+                    onClick={() => {
+                      setExportType(viewMode === 'daily' ? 'daily' : 'book');
+                      setShowMarkdownModal(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-900 text-stone-50 hover:bg-stone-800 transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>匯出</span>
+                  </button>
+                </div>
+              </div>
+            </header>
+
+            {/* 視角一：【今日跨書工作台 (Daily Multi-Book Workspace)】 */}
+            {viewMode === 'daily' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 space-y-6">
+                {/* 1. 日期選擇列與當日跨書閱讀儀表板 */}
+                <section className="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-stone-200/80 pb-4">
+                    {/* 日期選擇與快速切換膠囊 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                          平行閱讀日誌
+                        </span>
+                        <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                          <span>📅 {selectedDate} 跨書閱讀工作台</span>
+                        </h2>
+                      </div>
+
+                      {/* 歷史有紀錄的日期快速切換按鈕 */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-xs text-stone-500 mr-1">快速切換日期：</span>
+                        {allLoggedDates.map((d) => (
+                          <button
+                            key={d.date}
+                            onClick={() => setSelectedDate(d.date)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all flex items-center gap-1.5 border ${
+                              selectedDate === d.date
+                                ? 'bg-emerald-950 text-white border-emerald-950 font-bold shadow-sm'
+                                : 'bg-stone-50 text-slate-700 border-stone-200 hover:bg-stone-100'
+                            }`}
+                          >
+                            <span>{d.date === '2026-11-04' ? `${d.date} (今日)` : d.date}</span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                                selectedDate === d.date
+                                  ? 'bg-amber-400 text-slate-950 font-bold'
+                                  : 'bg-stone-200 text-stone-600'
+                              }`}
+                            >
+                              {d.bookCount}本/{d.chapterCount}章
+                            </span>
+                          </button>
+                        ))}
+
+                        {/* 自訂選擇其他日期 */}
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                          className="ml-1 px-2.5 py-1 text-xs font-mono rounded-lg border border-stone-300 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-800"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 當日跨書統計徽章組 */}
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <div className="bg-emerald-950 text-stone-100 px-4 py-2.5 rounded-xl flex items-center gap-3 shadow-sm">
+                        <div>
+                          <div className="text-[10px] text-emerald-300 uppercase">當日共讀書籍</div>
+                          <div className="text-lg font-bold text-white">
+                            {dailyStats.booksCount} <span className="text-xs font-normal">本書</span>
+                          </div>
+                        </div>
+                        <div className="h-7 w-px bg-emerald-800" />
+                        <div>
+                          <div className="text-[10px] text-emerald-300 uppercase">推進章節</div>
+                          <div className="text-lg font-bold text-amber-400">
+                            {dailyStats.chaptersCount} <span className="text-xs font-normal text-stone-200">章</span>
+                          </div>
+                        </div>
+                        <div className="h-7 w-px bg-emerald-800" />
+                        <div>
+                          <div className="text-[10px] text-emerald-300 uppercase">當日總閱讀時長</div>
+                          <div className="text-lg font-bold text-white">
+                            {formatMinutes(dailyStats.totalMins)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 工具列：新增今日閱讀章節 ＆ 切換「雙欄並排對讀 / 上下流式檢視」 */}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => setShowAddTodayChapter((prev) => !prev)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-900 text-white hover:bg-emerald-800 transition-colors shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>+ 新增 {selectedDate} 讀的書籍與章節</span>
+                      </button>
+                      <span className="text-xs text-stone-500">
+                        （今天讀了第 2 本、第 3 本書的某個章節？點此直接加入今日工作台！）
+                      </span>
+                    </div>
+
+                    {/* 檢視排版切換：雙欄並排對讀 vs 上下展開 */}
+                    <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200">
+                      <button
+                        onClick={() => setDailyLayout('grid')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          dailyLayout === 'grid'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-stone-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <Columns className="w-3.5 h-3.5" />
+                        <span>雙欄並排對讀</span>
+                      </button>
+                      <button
+                        onClick={() => setDailyLayout('stack')}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          dailyLayout === 'stack'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-stone-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <Rows className="w-3.5 h-3.5" />
+                        <span>上下寬版檢視</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 展開表單：新增今日閱讀的書籍章節 */}
+                  {showAddTodayChapter && (
+                    <form
+                      onSubmit={handleQuickAddTodayChapter}
+                      className="bg-[#F9F8F3] border-2 border-emerald-900/20 rounded-xl p-4 space-y-4 transition-all"
+                    >
+                      <div className="flex items-center justify-between border-b border-stone-200 pb-2.5">
+                        <span className="text-xs sm:text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                          <BookOpen className="w-4 h-4 text-emerald-800" />
+                          在 {selectedDate} 新增一本書的閱讀章節紀錄
+                        </span>
+                        <div className="flex items-center gap-3 text-xs">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-emerald-900">
+                            <input
+                              type="checkbox"
+                              checked={quickChapterForm.isNewBook}
+                              onChange={(e) =>
+                                setQuickChapterForm({
+                                  ...quickChapterForm,
+                                  isNewBook: e.target.checked
+                                })
+                              }
+                              className="rounded border-stone-300 text-emerald-900 focus:ring-emerald-800"
+                            />
+                            這是一本尚未在書櫃裡的新書
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                        {!quickChapterForm.isNewBook ? (
+                          <div className="sm:col-span-4">
+                            <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                              1. 選擇今天讀的書籍
+                            </label>
+                            <select
+                              value={quickChapterForm.bookId}
+                              onChange={(e) =>
+                                setQuickChapterForm({ ...quickChapterForm, bookId: e.target.value })
+                              }
+                              className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-stone-300 bg-white font-semibold text-slate-800"
+                            >
+                              {books.map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  #{b.serialNo} 《{b.title}》
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="sm:col-span-3">
+                              <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                                新書書名
+                              </label>
+                              <input
+                                type="text"
+                                value={quickChapterForm.newBookTitle}
+                                onChange={(e) =>
+                                  setQuickChapterForm({
+                                    ...quickChapterForm,
+                                    newBookTitle: e.target.value
+                                  })
+                                }
+                                placeholder="輸入書名..."
+                                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-stone-300 bg-white"
+                                required
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
+                              <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                                作者
+                              </label>
+                              <input
+                                type="text"
+                                value={quickChapterForm.newBookAuthor}
+                                onChange={(e) =>
+                                  setQuickChapterForm({
+                                    ...quickChapterForm,
+                                    newBookAuthor: e.target.value
+                                  })
+                                }
+                                placeholder="作者姓名"
+                                className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-stone-300 bg-white"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        <div className={quickChapterForm.isNewBook ? 'sm:col-span-3' : 'sm:col-span-4'}>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                            2. 今日推進的章節名稱
+                          </label>
+                          <input
+                            type="text"
+                            value={quickChapterForm.chapterTitle}
+                            onChange={(e) =>
+                              setQuickChapterForm({
+                                ...quickChapterForm,
+                                chapterTitle: e.target.value
+                              })
+                            }
+                            placeholder="例：第四章 如何建立永久筆記"
+                            className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-stone-300 bg-white"
+                            required
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                            3. 閱讀時段 / 頁碼
+                          </label>
+                          <input
+                            type="text"
+                            value={quickChapterForm.timeSlot}
+                            onChange={(e) =>
+                              setQuickChapterForm({
+                                ...quickChapterForm,
+                                timeSlot: e.target.value
+                              })
+                            }
+                            placeholder="21:30 - 22:00"
+                            className="w-full px-2.5 py-2 text-xs rounded-lg border border-stone-300 bg-white font-mono"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                            4. 耗時 (分鐘)
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min="1"
+                              max="600"
+                              value={quickChapterForm.durationMinutes}
+                              onChange={(e) =>
+                                setQuickChapterForm({
+                                  ...quickChapterForm,
+                                  durationMinutes: e.target.value
+                                })
+                              }
+                              className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-lg border border-stone-300 bg-white"
+                            />
+                            <button
+                              type="submit"
+                              className="px-3.5 py-2 rounded-lg bg-emerald-900 text-white text-xs font-bold hover:bg-emerald-800 shrink-0"
+                            >
+                              加入
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  )}
+                </section>
+
+                {/* 2. 當日多本書的章節卡片區（支援雙欄並排或上下流式） */}
+                {dailyChaptersList.length === 0 ? (
+                  <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-12 text-center space-y-3">
+                    <CalendarDays className="w-10 h-10 text-stone-400 mx-auto" />
+                    <h3 className="text-base font-bold text-slate-800">
+                      {selectedDate} 尚未記錄任何書籍的閱讀章節
+                    </h3>
+                    <p className="text-xs text-stone-500 max-w-md mx-auto">
+                      你習慣一天讀 2 本書以上、每本推進一個章節。點擊上方「+ 新增 {selectedDate} 讀的書籍與章節」，就能在這裡同時記錄多本書的金句與自我話語輸出！
+                    </p>
+                    <button
+                      onClick={() => setShowAddTodayChapter(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-900 text-white hover:bg-emerald-800"
+                    >
+                      <Plus className="w-4 h-4" />
+                      立即新增今日第一本章節
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`grid grid-cols-1 ${
+                      dailyLayout === 'grid' && dailyChaptersList.length > 1
+                        ? 'lg:grid-cols-2'
+                        : 'grid-cols-1'
+                    } gap-6 items-start`}
+                  >
+                    {dailyChaptersList.map((item) => {
+                      const {
+                        bookId,
+                        bookTitle,
+                        bookAuthor,
+                        bookTheme,
+                        bookSerialNo,
+                        chapter
+                      } = item;
+                      const themeStyle = BOOK_THEMES[bookTheme] || BOOK_THEMES.emerald;
+                      const isTimedThisChapter =
+                        timerTarget.bookId === bookId && timerTarget.chapterId === chapter.id;
+
+                      return (
+                        <div
+                          key={chapter.id}
+                          className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden flex flex-col"
+                        >
+                          {/* 卡片頂部：所屬書籍標頭列（一鍵跳轉回該書完整脈絡） */}
+                          <div
+                            className={`${themeStyle.header} px-5 py-3 flex flex-wrap items-center justify-between gap-2`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/15 text-white shrink-0">
+                                #{bookSerialNo}
+                              </span>
+                              <h3 className="text-sm sm:text-base font-bold truncate text-white">
+                                《{bookTitle}》
+                              </h3>
+                              <span className="text-xs text-stone-300 truncate hidden sm:inline">
+                                — {bookAuthor}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              {/* 綁定此章節開始計時 */}
+                              <button
+                                onClick={() =>
+                                  handleStartChapterTimer(
+                                    bookId,
+                                    chapter.id,
+                                    bookTitle,
+                                    chapter.title
+                                  )
+                                }
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all ${
+                                  isTimedThisChapter && timerRunning
+                                    ? 'bg-amber-400 text-slate-950 animate-pulse'
+                                    : 'bg-white/15 hover:bg-white/25 text-stone-100'
+                                }`}
+                                title="將頂部計時器綁定至此章節"
+                              >
+                                <Timer className="w-3 h-3" />
+                                <span>{isTimedThisChapter && timerRunning ? '計時中..' : '計時本章'}</span>
+                              </button>
+
+                              {/* 跳轉至該書完整視角 */}
+                              <button
+                                onClick={() => {
+                                  setActiveBookId(bookId);
+                                  setViewMode('book');
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/10 hover:bg-white/20 text-stone-100 transition-colors"
+                                title="查看這本書的所有章節與閱讀目的"
+                              >
+                                <span>全書脈絡</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 章節名稱與當日閱讀時段、耗時控制列 */}
+                          <div className="bg-[#EFECE6]/90 px-5 py-3 border-b border-stone-200 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                              <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${themeStyle.dot}`} />
+                              <input
+                                type="text"
+                                value={chapter.title}
+                                onChange={(e) =>
+                                  handleUpdateChapter(bookId, chapter.id, 'title', e.target.value)
+                                }
+                                className="w-full bg-transparent font-bold text-sm sm:text-base text-slate-900 focus:outline-none focus:bg-white focus:px-2 py-0.5 rounded"
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              {/* 閱讀時段 */}
+                              <div
+                                className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-stone-300/80"
+                                title="閱讀時段"
+                              >
+                                <span className="text-[11px] text-stone-400">時段:</span>
+                                <input
+                                  type="text"
+                                  value={chapter.timeSlot || ''}
+                                  onChange={(e) =>
+                                    handleUpdateChapter(bookId, chapter.id, 'timeSlot', e.target.value)
+                                  }
+                                  placeholder="21:00-21:30"
+                                  className="w-24 bg-transparent text-xs font-mono text-slate-700 focus:outline-none"
+                                />
+                              </div>
+
+                              {/* 本章耗時分鐘數 */}
+                              <div
+                                className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-stone-300/80"
+                                title="本章閱讀耗時（分鐘）"
+                              >
+                                <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="999"
+                                  value={chapter.durationMinutes ?? 0}
+                                  onChange={(e) =>
+                                    handleUpdateChapter(
+                                      bookId,
+                                      chapter.id,
+                                      'durationMinutes',
+                                      Math.max(0, Number(e.target.value) || 0)
+                                    )
+                                  }
+                                  className="w-11 bg-transparent text-xs font-mono font-bold text-slate-900 text-center focus:outline-none border-b border-stone-300"
+                                />
+                                <span className="text-[11px] text-stone-500">分</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 章節內的「感觸金句 ➔ 我的話語輸出」轉化卡片區 */}
+                          {renderChapterNotes(
+                            bookId,
+                            chapter,
+                            dailyLayout === 'grid' && dailyChaptersList.length > 1
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 3. 今日跨書思維碰撞 / 連結筆記區 */}
+                <section className="bg-white rounded-2xl border-2 border-amber-500/30 shadow-sm overflow-hidden">
+                  <div className="bg-amber-950 text-stone-100 px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                      <GitCompare className="w-4 h-4 text-amber-400" />
+                      <span>
+                        ✨ {selectedDate} 跨書思維碰撞（今天讀的這 {dailyStats.booksCount} 本書，觀點有哪些呼應、對比或可結合之處？）
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-amber-200">
+                      平行閱讀的最大優勢：讓不同書的章節在同一天產生化學反應
+                    </span>
+                  </div>
+                  <div className="p-5 bg-amber-50/20">
+                    <textarea
+                      rows={4}
+                      value={dailySparks[selectedDate] || ''}
+                      onChange={(e) =>
+                        setDailySparks((prev) => ({
+                          ...prev,
+                          [selectedDate]: e.target.value
+                        }))
+                      }
+                      placeholder={`試著把今天在各本書寫下的「我的話語輸出」放在一起看：\n例如：今天讀的 A 書某章與 B 書某章，有沒有講到類似的底層邏輯？或者可以怎麼組合應用在我的工作與生活中？`}
+                      className="w-full p-4 rounded-xl border border-amber-200/90 bg-white text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-600 resize-y"
+                    />
+                  </div>
+                </section>
+              </div>
+            )}
+
+            {/* 視角二：【單書完整脈絡檢視 (Single-Book Deep Dive View)】 */}
+            {viewMode === 'book' && (
+              <div className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* 左側欄：我的閱讀書櫃與單書統計 (佔 3 欄) */}
+                <aside className="lg:col-span-3 space-y-5 print:hidden">
+                  <div className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                        <BookMarked className="w-4 h-4 text-emerald-800" />
+                        我的平行閱讀書櫃 ({books.length})
+                      </h2>
+                      <button
+                        onClick={handleAddBookInSingleView}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-200/60"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        新增書籍
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                      {books.map((book) => {
+                        const isSelected = book.id === activeBook.id;
+                        const totalMins = (book.chapters || []).reduce(
+                          (acc, c) => acc + (Number(c.durationMinutes) || 0),
+                          0
+                        );
+                        const themeObj = BOOK_THEMES[book.theme] || BOOK_THEMES.emerald;
+
+                        return (
+                          <div
+                            key={book.id}
+                            onClick={() => {
+                              setActiveBookId(book.id);
+                              setSelectedChapterId('all');
+                            }}
+                            className={`group relative flex items-start justify-between p-3 rounded-xl cursor-pointer transition-all border ${
+                              isSelected
+                                ? 'bg-emerald-950 text-stone-50 border-emerald-900 shadow-sm'
+                                : 'bg-stone-50/70 hover:bg-stone-100 text-slate-800 border-stone-200/70'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-6 w-full">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className={`w-2 h-2 rounded-full ${themeObj.dot}`} />
+                                <span
+                                  className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
+                                    isSelected
+                                      ? 'bg-emerald-800 text-emerald-100'
+                                      : 'bg-stone-200 text-stone-600'
+                                  }`}
+                                >
+                                  #{book.serialNo}
+                                </span>
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-medium ${
+                                    book.status === 'completed'
+                                      ? isSelected
+                                        ? 'bg-amber-400/20 text-amber-300'
+                                        : 'bg-emerald-100 text-emerald-800'
+                                      : isSelected
+                                      ? 'bg-stone-800 text-stone-300'
+                                      : 'bg-amber-100 text-amber-900'
+                                  }`}
+                                >
+                                  {book.status === 'completed' ? '已完讀' : '共讀中'}
+                                </span>
+                              </div>
+                              <p className="text-sm font-semibold truncate">{book.title}</p>
+                              <div
+                                className={`flex items-center gap-2 mt-1 text-[11px] ${
+                                  isSelected ? 'text-stone-300' : 'text-stone-500'
+                                }`}
+                              >
+                                <span>共 {book.chapters.length} 章</span>
+                                <span>•</span>
+                                <span>{formatMinutes(totalMins)}</span>
+                              </div>
+                            </div>
+
+                            {books.length > 1 && (
+                              <div
+                                className="absolute right-2.5 top-3"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {confirmDeleteId === book.id ? (
+                                  <div className="flex items-center gap-1 bg-red-600 text-white px-1.5 py-0.5 rounded text-[10px]">
+                                    <button
+                                      onClick={() => handleDeleteBook(book.id)}
+                                      className="hover:underline font-bold"
+                                    >
+                                      確定
+                                    </button>
+                                    <span>/</span>
+                                    <button
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="hover:underline"
+                                    >
+                                      取消
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setConfirmDeleteId(book.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 rounded text-stone-400 hover:text-red-500"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 單書時間與章節導覽 */}
+                  <div className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-sm space-y-4">
+                    <div className="bg-emerald-950 text-stone-100 rounded-xl p-3.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] text-emerald-300">
+                        <span>本書累積閱讀時長</span>
+                        <span>投入 {singleBookStats.activeDaysCount} 天</span>
+                      </div>
+                      <div className="text-2xl font-bold text-white">
+                        {formatMinutes(singleBookStats.totalMinutes)}
+                      </div>
+                      <div className="text-[11px] text-stone-300 pt-1 border-t border-emerald-800/80 flex justify-between">
+                        <span>金句：{singleBookStats.totalQuotes} 則</span>
+                        <span>個人輸出：{singleBookStats.totalParaphrases} 則</span>
+                      </div>
+                    </div>
+
+                    {/* 點擊章節日期可直接跳回當天的「跨書工作台」 */}
+                    <div className="space-y-1.5">
+                      <div className="text-xs font-bold text-stone-600 flex items-center justify-between">
+                        <span>各章節閱讀軌跡</span>
+                        {selectedChapterId !== 'all' && (
+                          <button
+                            onClick={() => setSelectedChapterId('all')}
+                            className="text-[11px] text-emerald-800 underline"
+                          >
+                            顯示全部
+                          </button>
+                        )}
+                      </div>
+                      {activeBook.chapters.map((ch, idx) => (
+                        <div
+                          key={ch.id}
+                          className={`p-2 rounded-lg border text-xs transition-all flex items-center justify-between gap-2 ${
+                            selectedChapterId === ch.id
+                              ? 'bg-emerald-50 border-emerald-300 font-semibold'
+                              : 'bg-stone-50/70 border-stone-200/60 hover:bg-stone-100'
+                          }`}
+                        >
+                          <button
+                            onClick={() => setSelectedChapterId(ch.id)}
+                            className="text-left truncate flex-1"
+                          >
+                            <div className="truncate text-slate-800">
+                              Ch.{idx + 1} {ch.title}
+                            </div>
+                            <div className="text-[10px] text-stone-500 font-mono">
+                              ⏱️ {ch.durationMinutes || 0} 分鐘 • {ch.notes.length} 則輸出
+                            </div>
+                          </button>
+                          {ch.readDate && (
+                            <button
+                              onClick={() => {
+                                setSelectedDate(ch.readDate);
+                                setViewMode('daily');
+                              }}
+                              className="px-2 py-0.5 rounded bg-white border border-stone-300 text-[10px] font-mono text-emerald-900 hover:bg-emerald-50 shrink-0"
+                              title="跳轉至該日期的跨書工作台，查看當天還讀了哪本書"
+                            >
+                              {ch.readDate} ↗
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </aside>
+
+                {/* 右側主工作區 (佔 9 欄)：完整保留原圖四大步驟 */}
+                <main className="lg:col-span-9 space-y-6">
+                  {/* STEP 1：書籍基本資訊與閱讀目的 */}
+                  <section className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden">
+                    <div className="bg-stone-900 text-stone-100 px-6 py-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+                        <Target className="w-4 h-4 text-amber-400" />
+                        <span>STEP 1 ｜ 書籍基本資訊、起訖日期與閱讀目的</span>
+                      </div>
+                      <span className="text-xs text-emerald-300">
+                        已讀 {activeBook.chapters.length} 章 • 累積 {formatMinutes(singleBookStats.totalMinutes)}
+                      </span>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-stone-500 mb-1">序號</label>
+                          <input
+                            type="text"
+                            value={activeBook.serialNo}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { serialNo: e.target.value })
+                            }
+                            className="w-full px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 text-sm font-mono"
+                          />
+                        </div>
+                        <div className="sm:col-span-5">
+                          <label className="block text-[11px] font-bold text-stone-500 mb-1">書名</label>
+                          <input
+                            type="text"
+                            value={activeBook.title}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { title: e.target.value })
+                            }
+                            className="w-full px-3.5 py-2 rounded-lg border border-stone-200 bg-stone-50 text-sm font-bold text-slate-900"
+                          />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <label className="block text-[11px] font-bold text-stone-500 mb-1">作者</label>
+                          <input
+                            type="text"
+                            value={activeBook.author}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { author: e.target.value })
+                            }
+                            className="w-full px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 text-sm"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-stone-500 mb-1">狀態</label>
+                          <select
+                            value={activeBook.status}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { status: e.target.value })
+                            }
+                            className="w-full px-2.5 py-2 rounded-lg border border-stone-200 bg-stone-50 text-xs font-semibold"
+                          >
+                            <option value="reading">📖 共讀推進中</option>
+                            <option value="completed">✅ 已完讀</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                            開始閱讀日期
+                          </label>
+                          <input
+                            type="date"
+                            value={activeBook.startDate || ''}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { startDate: e.target.value })
+                            }
+                            className="w-full px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-stone-600 mb-1">
+                            完讀日期 / 預計完讀
+                          </label>
+                          <input
+                            type="date"
+                            value={activeBook.endDate || ''}
+                            onChange={(e) =>
+                              updateBookById(activeBook.id, { endDate: e.target.value })
+                            }
+                            className="w-full px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* 閱讀目的 */}
+                      <div className="bg-amber-50/50 border border-amber-200/80 rounded-xl p-4">
+                        <label className="flex items-center gap-1.5 text-xs font-bold text-amber-950 mb-1.5">
+                          <Target className="w-4 h-4 text-amber-700" />
+                          閱讀目的（核心提問：我想從這本書找到什麼答案？）
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={activeBook.purpose}
+                          onChange={(e) =>
+                            updateBookById(activeBook.id, { purpose: e.target.value })
+                          }
+                          className="w-full bg-white px-3.5 py-2 rounded-lg border border-amber-200 text-sm text-slate-800 focus:outline-none"
+                        />
+                      </div>
+
+                      {/* 知識標籤 */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-stone-500 flex items-center gap-1">
+                          <Tag className="w-3.5 h-3.5" />
+                          標籤：
+                        </span>
+                        {activeBook.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-stone-100 text-slate-700 border border-stone-200"
+                          >
+                            #{tag}
+                            <button
+                              onClick={() => handleRemoveTag(tag)}
+                              className="text-stone-400 hover:text-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                        <form onSubmit={handleAddTag}>
+                          <input
+                            type="text"
+                            value={newTagInput}
+                            onChange={(e) => setNewTagInput(e.target.value)}
+                            placeholder="+ 新增標籤"
+                            className="px-2.5 py-0.5 text-xs rounded-full border border-dashed border-stone-300 w-28"
+                          />
+                        </form>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* STEP 2：逐章節「感觸金句 ➔ 我的話語輸出」 */}
+                  <section className="space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-4 rounded-2xl border border-stone-200/90 shadow-sm">
+                      <div>
+                        <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5 text-emerald-800" />
+                          <span>STEP 2 ｜ 逐章節「感觸金句 ➔ 我的話語輸出」完整脈絡</span>
+                        </h2>
+                        <p className="text-xs text-stone-500 mt-0.5">
+                          點擊章節上的「閱讀日期」可一鍵切換回當天的跨書工作台，查看當天同時讀的另一本書
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="搜尋本書金句或輸出..."
+                            className="pl-8 pr-3 py-1.5 text-xs rounded-lg border border-stone-200 bg-stone-50"
+                          />
+                        </div>
+                        <button
+                          onClick={handleAddChapterInSingleView}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-900 text-white hover:bg-emerald-800"
+                        >
+                          <Plus className="w-4 h-4" />
+                          新增章節
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      {filteredSingleBookChapters.map((chapter, chIdx) => (
+                        <div
+                          key={chapter.id}
+                          className="bg-white rounded-2xl border border-stone-200/90 shadow-sm overflow-hidden"
+                        >
+                          <div className="bg-[#EFECE6]/90 px-5 py-3 border-b border-stone-200 flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 flex-1 min-w-[220px]">
+                              <button
+                                onClick={() =>
+                                  handleUpdateChapter(
+                                    activeBook.id,
+                                    chapter.id,
+                                    'isCollapsed',
+                                    !chapter.isCollapsed
+                                  )
+                                }
+                                className="p-1 rounded hover:bg-stone-200/80 text-stone-600"
+                              >
+                                {chapter.isCollapsed ? (
+                                  <ChevronRight className="w-4 h-4" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4" />
+                                )}
+                              </button>
+                              <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-emerald-900 text-stone-100">
+                                CH.{chIdx + 1}
+                              </span>
+                              <input
+                                type="text"
+                                value={chapter.title}
+                                onChange={(e) =>
+                                  handleUpdateChapter(
+                                    activeBook.id,
+                                    chapter.id,
+                                    'title',
+                                    e.target.value
+                                  )
+                                }
+                                className="w-full bg-transparent font-bold text-sm sm:text-base text-slate-900 focus:outline-none focus:bg-white px-2 py-0.5 rounded"
+                              />
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-stone-300/80">
+                                <Calendar className="w-3.5 h-3.5 text-emerald-800" />
+                                <input
+                                  type="date"
+                                  value={chapter.readDate || ''}
+                                  onChange={(e) =>
+                                    handleUpdateChapter(
+                                      activeBook.id,
+                                      chapter.id,
+                                      'readDate',
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-transparent text-xs font-mono text-slate-800 focus:outline-none"
+                                />
+                              </div>
+
+                              <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-stone-300/80">
+                                <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="999"
+                                  value={chapter.durationMinutes ?? 0}
+                                  onChange={(e) =>
+                                    handleUpdateChapter(
+                                      activeBook.id,
+                                      chapter.id,
+                                      'durationMinutes',
+                                      Math.max(0, Number(e.target.value) || 0)
+                                    )
+                                  }
+                                  className="w-11 bg-transparent text-xs font-mono font-bold text-center focus:outline-none"
+                                />
+                                <span className="text-[11px] text-stone-500">分</span>
+                              </div>
+
+                              <button
+                                onClick={() => handleDeleteChapter(activeBook.id, chapter.id)}
+                                className="p-1.5 text-stone-400 hover:text-red-600"
+                                title="刪除此章節"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {!chapter.isCollapsed &&
+                            renderChapterNotes(activeBook.id, chapter, false)}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* STEP 3：全書核心心得分享與行動踐行清單 */}
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div className="lg:col-span-6 bg-white rounded-2xl border border-stone-200/90 shadow-sm p-6 flex flex-col">
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2 mb-2">
+                        <BookOpen className="w-5 h-5 text-emerald-800" />
+                        <span>STEP 3 ｜ 全書核心心得分享</span>
+                      </h3>
+                      <p className="text-xs text-stone-500 mb-3">
+                        回顧各章節自己寫下的話語輸出，統整這本書帶給你最大的觀點轉變：
+                      </p>
+                      <textarea
+                        rows={6}
+                        value={activeBook.synthesis}
+                        onChange={(e) =>
+                          updateBookById(activeBook.id, { synthesis: e.target.value })
+                        }
+                        placeholder="寫下全書總結心得..."
+                        className="w-full flex-1 p-3.5 rounded-xl border border-stone-200 bg-stone-50 text-sm leading-relaxed focus:outline-none focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="lg:col-span-6 bg-white rounded-2xl border border-stone-200/90 shadow-sm p-6 flex flex-col">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <Zap className="w-5 h-5 text-amber-600" />
+                          <span>行動清單與踐行分享</span>
+                        </h3>
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                          完成 {singleBookStats.completedActions} / {singleBookStats.aggregatedActions.length}
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-500 mb-3">
+                        自動彙整本書各章節的觸發行動，實際執行後請填寫「踐行分享」：
+                      </p>
+                      <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                        {singleBookStats.aggregatedActions.map((act) => (
+                          <div
+                            key={act.noteId}
+                            className="p-3 rounded-xl border border-stone-200 bg-stone-50/70 space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <button
+                                onClick={() =>
+                                  handleUpdateNoteCard(
+                                    activeBook.id,
+                                    act.chapterId,
+                                    act.noteId,
+                                    'actionDone',
+                                    !act.actionDone
+                                  )
+                                }
+                                className="flex items-start gap-2 text-left"
+                              >
+                                {act.actionDone ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                                ) : (
+                                  <Circle className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
+                                )}
+                                <span
+                                  className={`text-xs font-bold ${
+                                    act.actionDone ? 'line-through text-stone-400' : 'text-slate-900'
+                                  }`}
+                                >
+                                  {act.actionText}
+                                </span>
+                              </button>
+                              <span className="text-[10px] font-mono text-stone-500 shrink-0">
+                                {act.chapterDate}
+                              </span>
+                            </div>
+                            <input
+                              type="text"
+                              value={act.practiceLog}
+                              onChange={(e) =>
+                                handleUpdateNoteCard(
+                                  activeBook.id,
+                                  act.chapterId,
+                                  act.noteId,
+                                  'practiceLog',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="✍️ 填寫踐行分享：實際執行後的結果與回饋..."
+                              className="w-full px-2.5 py-1 text-xs rounded border border-stone-200 bg-white"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* STEP 4：三次間隔重讀打卡區 */}
+                  <section className="bg-white rounded-2xl border border-stone-200/90 shadow-sm p-6">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <RotateCcw className="w-5 h-5 text-emerald-800" />
+                        <span>STEP 4 ｜ 間隔重讀筆記打卡（第 1～3 次時間）</span>
+                      </h3>
+                      <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-bold text-amber-950">
+                        <Award className="w-4 h-4 text-amber-600" />
+                        <span>已完成 {singleBookStats.completedRereads} / 3 次重讀 — 你真棒！</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {activeBook.rereads.map((reread) => (
+                        <div
+                          key={reread.stage}
+                          className={`rounded-xl p-4 border ${
+                            reread.completed
+                              ? 'bg-emerald-50/50 border-emerald-300'
+                              : 'bg-stone-50/60 border-stone-200'
+                          }`}
+                        >
+                          <button
+                            onClick={() =>
+                              handleUpdateReread(reread.stage, 'completed', !reread.completed)
+                            }
+                            className="flex items-center gap-2 mb-2.5 text-left"
+                          >
+                            {reread.completed ? (
+                              <CheckCircle2 className="w-5 h-5 text-emerald-700" />
+                            ) : (
+                              <Circle className="w-5 h-5 text-stone-400" />
+                            )}
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">{reread.label}</div>
+                              <div className="text-[10px] text-stone-500">{reread.hint}</div>
+                            </div>
+                          </button>
+                          <input
+                            type="date"
+                            value={reread.date}
+                            onChange={(e) =>
+                              handleUpdateReread(reread.stage, 'date', e.target.value)
+                            }
+                            className="w-full px-2.5 py-1 text-xs rounded border border-stone-200 bg-white mb-2 font-mono"
+                          />
+                          <input
+                            type="text"
+                            value={reread.reflection}
+                            onChange={(e) =>
+                              handleUpdateReread(reread.stage, 'reflection', e.target.value)
+                            }
+                            placeholder="重讀體悟..."
+                            className="w-full px-2.5 py-1 text-xs rounded border border-stone-200 bg-white"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                </main>
+              </div>
+            )}
+
+            {/* 匯出 Markdown 彈窗 */}
+            {showMarkdownModal && (
+              <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+                  <div className="px-6 py-4 bg-stone-900 text-stone-100 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Download className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-sm font-bold">匯出 Markdown 筆記</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setExportType('daily')}
+                        className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                          exportType === 'daily'
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-stone-800 text-stone-300'
+                        }`}
+                      >
+                        匯出 {selectedDate} 跨書日誌
+                      </button>
+                      <button
+                        onClick={() => setExportType('book')}
+                        className={`px-2.5 py-1 rounded text-xs font-semibold ${
+                          exportType === 'book'
+                            ? 'bg-amber-400 text-slate-950'
+                            : 'bg-stone-800 text-stone-300'
+                        }`}
+                      >
+                        匯出《{activeBook.title.slice(0, 8)}..》全書
+                      </button>
+                      <button
+                        onClick={() => setShowMarkdownModal(false)}
+                        className="text-stone-400 hover:text-white ml-2"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-6 overflow-y-auto flex-1">
+                    <pre className="p-4 rounded-xl bg-stone-900 text-stone-100 text-xs font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto max-h-96">
+                      {generateMarkdown()}
+                    </pre>
+                  </div>
+
+                  <div className="px-6 py-4 bg-stone-50 border-t border-stone-200 flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => setShowMarkdownModal(false)}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold text-stone-600 hover:bg-stone-200"
+                    >
+                      關閉
+                    </button>
+                    <button
+                      onClick={handleCopyMarkdown}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-900 text-white hover:bg-emerald-800"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      複製 Markdown
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      const root = createRoot(document.getElementById('root'));
+      root.render(<App />);
     </script>
-</body>
+  </body>
 </html>
